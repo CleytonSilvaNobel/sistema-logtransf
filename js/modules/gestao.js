@@ -158,7 +158,7 @@ const GestaoModule = {
                     Store.update('motoristas', id, data);
                     Utils.notify('Motorista atualizado.');
                 } else {
-                    Store.add('motoristas', data);
+                    Store.insert('motoristas', data);
                     Utils.notify('Motorista cadastrado.');
                 }
                 this.renderView();
@@ -194,7 +194,7 @@ const GestaoModule = {
                                     <td><span class="status-badge">${l.tipo || 'Padrão'}</span></td>
                                     <td style="text-align: right;">
                                         <button class="icon-btn" onclick="GestaoModule.openLocalModal('${l.id}')"><i data-lucide="edit-3"></i></button>
-                                        <button class="icon-btn delete"><i data-lucide="trash-2"></i></button>
+                                        <button class="icon-btn delete" onclick="GestaoModule.removeDataItem('locais', '${l.id}')"><i data-lucide="trash-2"></i></button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -218,7 +218,7 @@ const GestaoModule = {
             onSave: () => {
                 const nome = document.getElementById('l-nome').value;
                 if (id) Store.update('locais', id, { nome });
-                else Store.add('locais', { nome, tipo: 'Padrão' });
+                else Store.insert('locais', { nome, tipo: 'Padrão' });
                 this.renderView();
                 return true;
             }
