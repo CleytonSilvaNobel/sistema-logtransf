@@ -1,180 +1,137 @@
 /**
- * LogTransf - Gestão Module
- * Handles Users, Master Data (Motoristas, Locais, Carretas), Branding and AI config.
+ * LogTransf - Management & Settings Module
  */
 
 const GestaoModule = {
+    currentTab: 'motoristas',
+    activeArea: 'settings', // 'settings' or 'management'
+
+    renderSettings() {
+        this.activeArea = 'settings';
+        if (!['motoristas', 'carretas', 'locais'].includes(this.currentTab)) {
+            this.currentTab = 'motoristas';
+        }
+        this.renderView();
+    },
+
+    renderManagement() {
+        this.activeArea = 'management';
+        if (!['usuarios', 'grupos', 'manutencao'].includes(this.currentTab)) {
+            this.currentTab = 'usuarios';
+        }
+        this.renderView();
+    },
+
     renderView() {
-        const subnav = `
-            <div class="tabs-subnav">
-                <button class="subnav-item active" data-subtarget="sub-ges-users">Usuários</button>
-                <button class="subnav-item" data-subtarget="sub-ges-motoristas">Motoristas</button>
-                <button class="subnav-item" data-subtarget="sub-ges-locais">Locais</button>
-                <button class="subnav-item" data-subtarget="sub-ges-carretas">Carretas</button>
-                <button class="subnav-item" data-subtarget="sub-ges-limpeza">Limpeza</button>
-                <button class="subnav-item" data-subtarget="sub-ges-admin">Personalização</button>
-                <button class="subnav-item" data-subtarget="sub-ges-ai">Assistente IA</button>
-            </div>
-            <div id="sub-content-area" style="margin-top: 1.5rem;">
-                ${this.renderUsuarios()}
-            </div>
-        `;
-
-        document.querySelector('.content-body').innerHTML = `
+        const content = `
             <div class="module-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <h2><i data-lucide="settings"></i> Configurações e Gestão</h2>
-                    <button class="btn btn-secondary btn-sm" onclick="GestaoModule.exportBackup()"><i data-lucide="download"></i> Backup Local</button>
+                <div class="subnav-pills">
+                    ${this.renderSubNav()}
                 </div>
-                ${subnav}
+                <div id="gestao-content">
+                    ${this.renderTabContent()}
+                </div>
             </div>
         `;
-        
+
+        document.querySelector('.content-body').innerHTML = content;
         lucide.createIcons();
-        this.bindSubnav();
     },
 
-    bindSubnav() {
-        const items = document.querySelectorAll('.subnav-item');
-        items.forEach(item => {
-            item.addEventListener('click', () => {
-                items.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                
-                const target = item.getAttribute('data-subtarget');
-                const area = document.getElementById('sub-content-area');
-                
-                switch(target) {
-                    case 'sub-ges-users': area.innerHTML = this.renderUsuarios(); break;
-                    case 'sub-ges-motoristas': area.innerHTML = this.renderMotoristas(); break;
-                    case 'sub-ges-locais': area.innerHTML = this.renderLocais(); break;
-                    case 'sub-ges-carretas': area.innerHTML = this.renderCarretas(); break;
-                    case 'sub-ges-limpeza': area.innerHTML = this.renderLimpeza(); break;
-                    case 'sub-ges-admin': area.innerHTML = this.renderAdministracao(); break;
-                    case 'sub-ges-ai': area.innerHTML = this.renderAssistente(); break;
-                }
-                lucide.createIcons();
-            });
-        });
-    },
-
-    // --- Usuarios ---
-    renderUsuarios() {
-        const users = Store.get('users');
-        const isReadOnly = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
-
-        const rows = users.map(u => `
-            <tr>
-                <td><strong>${u.nome}</strong></td>
-                <td>${u.login}</td>
-                <td><span class="badge">${u.grupo}</span></td>
-                <td>
-                    ${!isReadOnly ? `
-                    <button class="icon-btn" onclick="GestaoModule.editUser('${u.id}')"><i data-lucide="edit-2"></i></button>
-                    ${u.login !== 'admin' ? `<button class="icon-btn danger" onclick="GestaoModule.removeDataItem('users', '${u.id}')"><i data-lucide="trash-2"></i></button>` : ''}
-                    ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
-                </td>
-            </tr>
-        `).join('');
-
-        return `
-            <div class="card fade-in">
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Lista de Usuários</h3>
-                    ${!isReadOnly ? `<button class="btn btn-primary btn-sm" onclick="GestaoModule.openUserModal()">+ Novo Usuário</button>` : ''}
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>Nome</th><th>Login</th><th>Grupo</th><th>Ações</th></tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    },
-
-    openUserModal(userId = null) {
-        const user = userId ? Store.getById('users', userId) : null;
+    renderSubNav() {
+        const userGroup = String(App.currentUser.grupo || '').toUpperCase();
         
-        UI.openModal({
-            title: user ? 'Editar Usuário' : 'Novo Usuário',
-            formHtml: `
-                <div class="form-group">
-                    <label>Nome Completo</label>
-                    <input type="text" id="u-nome" class="form-control" value="${user?.nome || ''}" required>
-                </div>
-                <div class="form-group">
-                    <label>Login (Acesso)</label>
-                    <input type="text" id="u-login" class="form-control" value="${user?.login || ''}" ${user ? 'disabled' : ''} required>
-                </div>
-                <div class="form-group">
-                    <label>Senha</label>
-                    <input type="password" id="u-senha" class="form-control" value="${user?.senha || ''}" required>
-                </div>
-                <div class="form-group">
-                    <label>Grupo de Acesso</label>
-                    <select id="u-grupo" class="form-control">
-                        <option value="ADM" ${user?.grupo === 'ADM' ? 'selected' : ''}>ADM</option>
-                        <option value="Supervisor" ${user?.grupo === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
-                        <option value="Operador" ${user?.grupo === 'Operador' ? 'selected' : ''}>Operador</option>
-                        <option value="Visitante" ${user?.grupo === 'Visitante' ? 'selected' : ''}>Visitante</option>
-                    </select>
-                </div>
-            `,
-            onSave: () => {
-                const nome = document.getElementById('u-nome').value;
-                const login = document.getElementById('u-login').value;
-                const senha = document.getElementById('u-senha').value;
-                const grupo = document.getElementById('u-grupo').value;
-
-                if (user) {
-                    Store.update('users', user.id, { nome, senha, grupo });
-                } else {
-                    Store.insert('users', { nome, login, senha, grupo });
-                }
-                Utils.notify('Usuário salvo com sucesso!');
-                this.renderView();
-                return true;
+        let tabs = [];
+        if (this.activeArea === 'settings') {
+            tabs = [
+                { id: 'motoristas', label: 'Motoristas', icon: 'users' },
+                { id: 'carretas', label: 'Carretas', icon: 'truck' },
+                { id: 'locais', label: 'Locais', icon: 'map-pin' }
+            ];
+            // Custo por Palete: only ADM and Supervisor
+            if (userGroup === 'ADM' || userGroup === 'GESTOR' || userGroup === 'SUPERVISOR') {
+                tabs.push({ id: 'custos', label: 'Custos', icon: 'dollar-sign' });
             }
-        });
+        } else {
+            if (userGroup === 'ADM' || userGroup === 'GESTOR') {
+                tabs.push({ id: 'administracao', label: 'Administração', icon: 'wrench' });
+                tabs.push({ id: 'usuarios', label: 'Usuários', icon: 'user-cog' });
+                tabs.push({ id: 'grupos', label: 'Grupos', icon: 'shield' });
+                tabs.push({ id: 'manutencao', label: 'Manutenção', icon: 'database' });
+                tabs.push({ id: 'assistente', label: 'Assistente IA', icon: 'sparkles' });
+            } else if (userGroup === 'SUPERVISOR') {
+                tabs.push({ id: 'usuarios', label: 'Usuários', icon: 'user-cog' });
+            }
+        }
+
+        return tabs.map(tab => `
+            <button class="pill-btn ${this.currentTab === tab.id ? 'active' : ''}" 
+                    onclick="GestaoModule.switchSubTab('${tab.id}')">
+                <i data-lucide="${tab.icon}"></i> ${tab.label}
+            </button>
+        `).join('');
     },
 
-    editUser(id) { this.openUserModal(id); },
+    switchSubTab(tabId) {
+        this.currentTab = tabId;
+        this.renderView();
+    },
+
+    renderTabContent() {
+        switch (this.currentTab) {
+            case 'motoristas': return this.renderMotoristas();
+            case 'carretas': return this.renderCarretas();
+            case 'locais': return this.renderLocais();
+            case 'custos': return this.renderCustos();
+            case 'usuarios': return this.renderUsuarios();
+            case 'grupos': return this.renderGrupos();
+            case 'administracao': return this.renderAdministracao();
+            case 'manutencao': return this.renderManutencao();
+            case 'assistente': return this.renderAssistente();
+            default: return `<div class="card"><h3>Em construção...</h3></div>`;
+        }
+    },
 
     // --- Motoristas ---
     renderMotoristas() {
-        const motoristas = (Store.get('motoristas') || []).sort((a,b) => a.nome.localeCompare(b.nome));
-        const isReadOnly = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
-
-        const rows = motoristas.map(m => `
-            <tr>
-                <td>${m.id || '-'}</td>
-                <td><strong>${m.nome}</strong></td>
-                <td>${m.cpf || '-'}</td>
-                <td>${m.fone || '-'}</td>
-                <td>
-                    ${!isReadOnly ? `
-                    <button class="icon-btn" onclick="GestaoModule.editMotorista('${m.id}')"><i data-lucide="edit-2"></i></button>
-                    <button class="icon-btn danger" onclick="GestaoModule.removeDataItem('motoristas', '${m.id}')"><i data-lucide="trash-2"></i></button>
-                    ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
-                </td>
-            </tr>
-        `).join('');
-
+        const motoristas = Store.get('motoristas') || [];
+        const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
         return `
-            <div class="card fade-in">
+            <div class="card">
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Motoristas Cadastrados</h3>
-                    ${!isReadOnly ? `<button class="btn btn-primary btn-sm" onclick="GestaoModule.openMotoristaModal()">+ Novo Motorista</button>` : ''}
+                    <h3><i data-lucide="users"></i> Cadastro de Motoristas</h3>
+                    ${!isVisitor ? `
+                    <button class="btn btn-primary btn-sm" onclick="GestaoModule.openMotoristaModal()">
+                        <i data-lucide="plus"></i> Novo Motorista
+                    </button>
+                    ` : ''}
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
-                            <tr><th>ID</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>Ações</th></tr>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Nome</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
                         </thead>
-                        <tbody>${rows || '<tr><td colspan="5" style="text-align:center">Nenhum motorista.</td></tr>'}</tbody>
+                        <tbody>
+                            ${motoristas.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-muted);">Nenhum motorista cadastrado.</td></tr>' : ''}
+                            ${motoristas.map(m => `
+                                <tr>
+                                    <td><code class="id-badge">${m.id}</code></td>
+                                    <td><strong>${m.nome}</strong></td>
+                                    <td><span class="status-badge ${m.ativo ? 'success' : 'danger'}">${m.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                                    <td style="text-align: right;">
+                                        ${!isVisitor ? `
+                                            <button class="icon-btn" onclick="GestaoModule.openMotoristaModal('${m.id}')"><i data-lucide="edit-3"></i></button>
+                                            <button class="icon-btn delete" onclick="GestaoModule.removeDataItem('motoristas', '${m.id}')"><i data-lucide="trash-2"></i></button>
+                                        ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -183,68 +140,79 @@ const GestaoModule = {
 
     openMotoristaModal(id = null) {
         const item = id ? Store.getById('motoristas', id) : null;
+        const formHtml = `
+            <div class="form-group">
+                <label>Nome do Motorista</label>
+                <input type="text" id="m-nome" class="form-control" value="${item ? item.nome : ''}" placeholder="Ex: João Silva">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="m-ativo" ${item ? (item.ativo ? 'checked' : '') : 'checked'}> Ativo
+                </label>
+            </div>
+        `;
+
         UI.openModal({
-            title: item ? 'Editar Motorista' : 'Novo Motorista',
-            formHtml: `
-                <div class="form-group">
-                    <label>Nome do Motorista</label>
-                    <input type="text" id="m-nome" class="form-control" value="${item?.nome || ''}" required>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>CPF</label>
-                        <input type="text" id="m-cpf" class="form-control" value="${item?.cpf || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>Telefone / WhatsApp</label>
-                        <input type="text" id="m-fone" class="form-control" value="${item?.fone || ''}">
-                    </div>
-                </div>
-            `,
+            title: id ? 'Editar Motorista' : 'Novo Motorista',
+            formHtml,
             onSave: () => {
-                const nome = document.getElementById('m-nome').value;
-                const cpf = document.getElementById('m-cpf').value;
-                const fone = document.getElementById('m-fone').value;
-                if (item) Store.update('motoristas', item.id, { nome, cpf, fone });
-                else Store.insert('motoristas', { nome, cpf, fone });
+                const nome = document.getElementById('m-nome').value.trim();
+                const ativo = document.getElementById('m-ativo').checked;
+                if (!nome) return Utils.notify('Informe o nome.', 'danger');
+
+                const data = { nome, ativo };
+                if (id) {
+                    Store.update('motoristas', id, data);
+                    Utils.notify('Motorista atualizado.');
+                } else {
+                    Store.insert('motoristas', data);
+                    Utils.notify('Motorista cadastrado.');
+                }
                 this.renderView();
                 return true;
             }
         });
     },
-    editMotorista(id) { this.openMotoristaModal(id); },
 
     // --- Locais ---
     renderLocais() {
-        const locais = (Store.get('locais') || []).sort((a,b) => a.nome.localeCompare(b.nome));
-        const isReadOnly = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
-
-        const rows = locais.map(l => `
-            <tr>
-                <td><strong>${l.nome}</strong></td>
-                <td>${l.tipo || 'Unidade'}</td>
-                <td>${l.distancia || '0'} km</td>
-                <td>
-                    ${!isReadOnly ? `
-                    <button class="icon-btn" onclick="GestaoModule.editLocal('${l.id}')"><i data-lucide="edit-2"></i></button>
-                    <button class="icon-btn danger" onclick="GestaoModule.removeDataItem('locais', '${l.id}')"><i data-lucide="trash-2"></i></button>
-                    ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
-                </td>
-            </tr>
-        `).join('');
-
+        const locais = Store.get('locais') || [];
+        const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
         return `
-            <div class="card fade-in">
+            <div class="card">
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Locais de Entrega / Unidades</h3>
-                    ${!isReadOnly ? `<button class="btn btn-primary btn-sm" onclick="GestaoModule.openLocalModal()">+ Novo Local</button>` : ''}
+                    <h3><i data-lucide="map-pin"></i> Cadastro de Locais</h3>
+                    ${!isVisitor ? `
+                    <button class="btn btn-primary btn-sm" onclick="GestaoModule.openLocalModal()">
+                        <i data-lucide="plus"></i> Novo Local
+                    </button>
+                    ` : ''}
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
-                            <tr><th>Nome do Local</th><th>Tipo</th><th>Distância</th><th>Ações</th></tr>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
                         </thead>
-                        <tbody>${rows || '<tr><td colspan="4" style="text-align:center">Nenhum local.</td></tr>'}</tbody>
+                        <tbody>
+                            ${locais.map(l => `
+                                <tr>
+                                    <td><code class="id-badge">${l.id}</code></td>
+                                    <td><strong>${l.nome}</strong></td>
+                                    <td><span class="status-badge">${l.tipo || 'Padrão'}</span></td>
+                                    <td style="text-align: right;">
+                                        ${!isVisitor ? `
+                                            <button class="icon-btn" onclick="GestaoModule.openLocalModal('${l.id}')"><i data-lucide="edit-3"></i></button>
+                                            <button class="icon-btn delete" onclick="GestaoModule.removeDataItem('locais', '${l.id}')"><i data-lucide="trash-2"></i></button>
+                                        ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -254,141 +222,587 @@ const GestaoModule = {
     openLocalModal(id = null) {
         const item = id ? Store.getById('locais', id) : null;
         UI.openModal({
-            title: item ? 'Editar Local' : 'Novo Local',
+            title: id ? 'Editar Local' : 'Novo Local',
             formHtml: `
                 <div class="form-group">
                     <label>Nome do Local</label>
-                    <input type="text" id="l-nome" class="form-control" value="${item?.nome || ''}" required>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Tipo</label>
-                        <select id="l-tipo" class="form-control">
-                            <option value="Unidade" ${item?.tipo === 'Unidade' ? 'selected' : ''}>Unidade Interna</option>
-                            <option value="Terceiro" ${item?.tipo === 'Terceiro' ? 'selected' : ''}>Cliente / Terceiro</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Distância (km)</label>
-                        <input type="number" id="l-dist" class="form-control" value="${item?.distancia || ''}">
-                    </div>
+                    <input type="text" id="l-nome" class="form-control" value="${item ? item.nome : ''}" placeholder="Ex: Galpão B">
                 </div>
             `,
             onSave: () => {
-                const nome = document.getElementById('l-nome').value;
-                const tipo = document.getElementById('l-tipo').value;
-                const distancia = document.getElementById('l-dist').value;
-                if (item) Store.update('locais', item.id, { nome, tipo, distancia });
-                else Store.insert('locais', { nome, tipo, distancia });
+                const nome = document.getElementById('l-nome').value.trim();
+                if (!nome) return Utils.notify('Informe o nome do local.', 'danger');
+
+                if (id) {
+                    Store.update('locais', id, { nome });
+                    Utils.notify('Local atualizado com sucesso!');
+                } else {
+                    Store.insert('locais', { nome, tipo: 'Padrão' });
+                    Utils.notify('Local cadastrado com sucesso!');
+                }
                 this.renderView();
                 return true;
             }
         });
     },
-    editLocal(id) { this.openLocalModal(id); },
 
     // --- Carretas ---
     renderCarretas() {
-        const carretas = (Store.get('carretas') || []).sort((a,b) => a.placa.localeCompare(b.placa));
-        const isReadOnly = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
-
-        const rows = carretas.map(c => `
-            <tr>
-                <td>${c.id || '-'}</td>
-                <td><span class="placa">${c.placa}</span></td>
-                <td>${c.tipo || '-'}</td>
-                <td>${c.capacidade || '-'} plts</td>
-                <td>
-                    ${!isReadOnly ? `
-                    <button class="icon-btn" onclick="GestaoModule.editCarreta('${c.id}')"><i data-lucide="edit-2"></i></button>
-                    <button class="icon-btn danger" onclick="GestaoModule.removeDataItem('carretas', '${c.id}')"><i data-lucide="trash-2"></i></button>
-                    ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
-                </td>
-            </tr>
-        `).join('');
-
+        const carretas = Store.get('carretas') || [];
+        const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
         return `
-            <div class="card fade-in">
+            <div class="card">
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Frota de Carretas</h3>
-                    ${!isReadOnly ? `<button class="btn btn-primary btn-sm" onclick="GestaoModule.openCarretaModal()">+ Nova Carreta</button>` : ''}
+                    <h3><i data-lucide="truck"></i> Tipos de Carreta</h3>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
-                            <tr><th>ID</th><th>Placa</th><th>Tipo</th><th>Capacidade</th><th>Ações</th></tr>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Descrição</th>
+                                <th>Capacidade (Plts)</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
                         </thead>
-                        <tbody>${rows || '<tr><td colspan="5" style="text-align:center">Nenhuma carreta.</td></tr>'}</tbody>
+                        <tbody>
+                            ${carretas.map(c => `
+                                <tr>
+                                    <td><code class="id-badge">${c.id}</code></td>
+                                    <td><strong>${c.descricao}</strong></td>
+                                    <td>${c.capacidade} plts</td>
+                                    <td style="text-align: right;">
+                                        ${!isVisitor ? `
+                                            <button class="icon-btn" onclick="GestaoModule.openCarretaModal('${c.id}')"><i data-lucide="edit-3"></i></button>
+                                        ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
                     </table>
                 </div>
             </div>
         `;
     },
 
-    openCarretaModal(id = null) {
-        const item = id ? Store.getById('carretas', id) : null;
+    // --- Custos por Palete (Histórico) ---
+    renderCustos() {
+        const config = Store.get('config');
+        const historico = config.custos_historico || [];
+        const hoje = new Date().toISOString().split('T')[0];
+        const carretas = Store.get('carretas');
+        const isAdmin = App.currentUser?.grupo === 'ADM';
+
+        // Ordena histórico para exibir o mais recente primeiro
+        const historicoOrdenado = [...historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia));
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3><i data-lucide="plus-circle"></i> Registrar Novo Custo por Palete</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Informe o novo custo (R$) por palete e a data a partir de qual este valor passa a valer (Data de Vigência).</p>
+                </div>
+                <div class="card-body" style="padding: 1.5rem;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Data de Vigência</label>
+                            <input type="date" id="custo-data" class="form-control" value="${hoje}" max="${hoje}">
+                        </div>
+                        ${carretas.map(c => `
+                            <div class="form-group">
+                                <label>${c.descricao} <small style="color: var(--text-muted);">(${c.capacidade} plts)</small></label>
+                                <div style="position: relative;">
+                                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: 600;">R$</span>
+                                    <input type="number" id="custo-${c.id}" class="form-control" 
+                                           style="padding-left: 40px;" 
+                                           value="" 
+                                           step="0.01" min="0" 
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+                        <button class="btn btn-primary" onclick="GestaoModule.saveCustos()">
+                            <i data-lucide="save"></i> Registrar Novo Custo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i data-lucide="history"></i> Histórico e Vigência de Custos</h3>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Data de Vigência</th>
+                                    <th>Convencional (c1)</th>
+                                    <th>Double Deck (c2)</th>
+                                    <th>Registrado por</th>
+                                    <th>Data de Registro</th>
+                                    ${isAdmin ? '<th style="text-align:right;">Ações</th>' : ''}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${historicoOrdenado.length === 0 ? `<tr><td colspan="${isAdmin ? 6 : 5}" style="text-align: center; color: var(--text-muted);">Nenhum custo registrado.</td></tr>` : ''}
+                                ${historicoOrdenado.map(h => `
+                                    <tr>
+                                        <td><strong>${Utils.formatDate(h.data_vigencia)}</strong></td>
+                                        <td>R$ ${Number(h.c1 || 0).toFixed(2)}</td>
+                                        <td>R$ ${Number(h.c2 || 0).toFixed(2)}</td>
+                                        <td>${h.registrado_por}</td>
+                                        <td style="color: var(--text-muted);">${Utils.formatDate(h.registrado_em.split('T')[0])}</td>
+                                        ${isAdmin ? `
+                                        <td style="text-align:right;">
+                                            <button class="btn-icon" style="color: var(--danger);" title="Excluir" onclick="GestaoModule.deleteCustoHistorico('${h.id}')">
+                                                <i data-lucide="trash-2"></i>
+                                            </button>
+                                        </td>
+                                        ` : ''}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card" style="margin-top: 1.5rem; background: var(--primary-light); padding: 1.5rem; border-radius: var(--border-radius); border-left: 4px solid var(--primary);">
+                <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+                    <i data-lucide="info" style="width: 18px; height: 18px;"></i> Como funciona
+                </h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    <strong>Regra de Negócio:</strong> O sistema mantém um histórico dos valores. Cada viagem utiliza automaticamente o custo que estava em vigor na data em que foi realizada. O custo de uma viagem é igual a <em>capacidade do veículo × custo vigente cadastrado</em>.<br>
+                    <strong>Atenção ADM:</strong> Registros equivocados podem ser excluídos apenas por administradores para manter a auditoria da base de dados intacta.
+                </p>
+            </div>
+        `;
+    },
+
+    saveCustos() {
+        const dataVigencia = document.getElementById('custo-data').value;
+        if (!dataVigencia) {
+            Utils.notify('Informe a data de vigência do custo.', 'error');
+            return;
+        }
+
+        const carretas = Store.get('carretas');
+        const config = Store.get('config');
+        if (!config.custos_historico) config.custos_historico = [];
+
+        const novoRegistro = {
+            id: Utils.generateId(8),
+            data_vigencia: dataVigencia,
+            registrado_em: new Date().toISOString(),
+            registrado_por: App.currentUser ? App.currentUser.nome : 'Sistema'
+        };
+
+        let isValid = false;
+        
+        carretas.forEach(c => {
+            const val = parseFloat(document.getElementById(`custo-${c.id}`)?.value);
+            novoRegistro[c.id] = isNaN(val) ? 0 : val;
+            if (!isNaN(val) && val > 0) isValid = true;
+        });
+
+        if (!isValid) {
+            if (!confirm('Todos os custos estão zerados ou vazios. Deseja registrar custos zerados?')) {
+                return;
+            }
+        }
+
+        // Verifica se já existe um registro na mesma data de vigência para sobrepor ou apenas avisa
+        const indexExistente = config.custos_historico.findIndex(h => h.data_vigencia === dataVigencia);
+        if (indexExistente !== -1) {
+            if (!confirm(`Já existe um custo registrado com vigência em ${Utils.formatDate(dataVigencia)}. Deseja substituir?`)) {
+                return;
+            }
+            config.custos_historico[indexExistente] = { ...config.custos_historico[indexExistente], ...novoRegistro, id: config.custos_historico[indexExistente].id };
+        } else {
+            config.custos_historico.push(novoRegistro);
+        }
+
+        // Atualiza o legacy 'custos_palete' para o último registro vigente (apenas para fallback, se necessário)
+        const registroMaisRecente = [...config.custos_historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
+        if (registroMaisRecente) {
+            config.custos_palete = { 'c1': registroMaisRecente.c1 || 0, 'c2': registroMaisRecente.c2 || 0 };
+        }
+
+        Store.set('config', config);
+        Utils.notify('Novo custo registrado com histórico!', 'success');
+        this.renderView();
+    },
+
+    deleteCustoHistorico(id) {
+        if (!confirm('Tem certeza que deseja excluir este registro de custo? Viagens retroativas podem ser impactadas pelo recálculo.')) {
+            return;
+        }
+        
+        const config = Store.get('config');
+        if (config.custos_historico) {
+            config.custos_historico = config.custos_historico.filter(h => h.id !== id);
+            
+            // Re-atualiza o legacy 'custos_palete'
+            const registroMaisRecente = [...config.custos_historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
+            config.custos_palete = registroMaisRecente ? { 'c1': registroMaisRecente.c1 || 0, 'c2': registroMaisRecente.c2 || 0 } : { 'c1': 0, 'c2': 0 };
+            
+            Store.set('config', config);
+            Utils.notify('Registro de custo excluído com sucesso.', 'success');
+            this.renderView();
+        }
+    },
+
+    openCarretaModal(id) {
+        const item = Store.getById('carretas', id);
         UI.openModal({
-            title: item ? 'Editar Carreta' : 'Nova Carreta',
+            title: 'Editar Carreta',
             formHtml: `
                 <div class="form-group">
-                    <label>Placa</label>
-                    <input type="text" id="c-placa" class="form-control" value="${item?.placa || ''}" placeholder="AAA-0000" required>
+                    <label>Descrição do Veículo</label>
+                    <input type="text" id="c-desc" class="form-control" value="${item.descricao}">
                 </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Tipo / Descrição</label>
-                        <input type="text" id="c-tipo" class="form-control" value="${item?.tipo || ''}" placeholder="Ex: Baú, Sider...">
-                    </div>
-                    <div class="form-group">
-                        <label>Capacidade (Paletes)</label>
-                        <input type="number" id="c-cap" class="form-control" value="${item?.capacidade || ''}">
-                    </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Capacidade (Paletes)</label>
+                    <input type="number" id="c-cap" class="form-control" value="${item.capacity || item.capacidade}">
                 </div>
             `,
             onSave: () => {
-                const placa = document.getElementById('c-placa').value.toUpperCase();
-                const tipo = document.getElementById('c-tipo').value;
-                const capacidade = document.getElementById('c-cap').value;
-                if (item) Store.update('carretas', item.id, { placa, tipo, capacidade });
-                else Store.insert('carretas', { placa, tipo, capacidade });
+                const descricao = document.getElementById('c-desc').value.trim();
+                const capacidade = parseInt(document.getElementById('c-cap').value);
+                
+                if (!descricao) return Utils.notify('Informe a descrição.', 'danger');
+
+                Store.update('carretas', id, { descricao, capacidade });
+                Utils.notify('Tipo de carreta atualizado.');
                 this.renderView();
                 return true;
             }
         });
     },
-    editCarreta(id) { this.openCarretaModal(id); },
 
-    // --- Limpeza ---
-    renderLimpeza() {
-        const isReadOnly = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
+    renderUsuarios() {
+        const users = Store.get('users') || [];
+        const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
         return `
-            <div class="card fade-in">
-                <div class="card-header">
-                    <h3>Limpeza e Manutenção do Banco</h3>
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3><i data-lucide="user-cog"></i> Controle de Usuários</h3>
+                    ${!isVisitor ? `
+                    <button class="btn btn-primary btn-sm" onclick="GestaoModule.openUserModal()">
+                        <i data-lucide="plus"></i> Novo Usuário
+                    </button>
+                    ` : ''}
                 </div>
-                <div class="card-body" style="padding: 1.5rem;">
-                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Remova dados antigos para manter a aplicação leve. Esta ação é irreversível.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <div style="border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--border-radius);">
-                            <h4 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="trash" style="color: var(--danger);"></i> Eraser Operacional</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Remove viagens e saldos de períodos passados.</p>
-                            ${!isReadOnly ? `
-                            <button class="btn btn-secondary" onclick="GestaoModule.openCleanModal()">Configurar Limpeza</button>
-                            ` : '<span class="badge">Acesso Restrito</span>'}
-                        </div>
-                        
-                        <div style="border: 1px solid var(--border-color); padding: 1.5rem; border-radius: var(--border-radius);">
-                            <h4 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="database" style="color: var(--warning);"></i> Reset Master</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Zera completamente a base de dados (CUIDADO).</p>
-                            ${!isReadOnly ? `
-                            <button class="btn btn-danger" onclick="GestaoModule.clearOperationalData()">Zerar Operacional</button>
-                            ` : '<span class="badge">Acesso Restrito</span>'}
-                        </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Login</th>
+                                <th>Grupo</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(u => {
+                                const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
+                                const currentUserGroup = String(App.currentUser.grupo || '').toUpperCase();
+                                const targetUserGroup = String(u.grupo || '').toUpperCase();
+                                const currentWeight = hierarchy[currentUserGroup] || 1;
+                                const targetWeight = hierarchy[targetUserGroup] || 1;
+                                
+                                // Can only edit if current weight >= target weight AND not a visitor
+                                const canEdit = currentWeight >= targetWeight && !isVisitor;
+
+                                return `
+                                    <tr>
+                                        <td><strong>${u.nome}</strong></td>
+                                        <td>${u.login}</td>
+                                        <td><span class="status-badge">${u.grupo}</span></td>
+                                        <td style="text-align: right;">
+                                            ${canEdit ? `
+                                                <button class="icon-btn" onclick="GestaoModule.resetPassword('${u.id}')" title="Redefinir Senha"><i data-lucide="key"></i></button>
+                                                <button class="icon-btn" onclick="GestaoModule.openUserModal('${u.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
+                                                <button class="icon-btn delete" onclick="GestaoModule.removeDataItem('users', '${u.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+                                            ` : '<span style="color: var(--text-muted); font-size: 0.75rem;">Protegido</span>'}
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    openUserModal(id = null) {
+        const item = id ? Store.getById('users', id) : null;
+        
+        const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
+        const myGroup = String(App.currentUser.grupo || '').toUpperCase();
+        const myWeight = hierarchy[myGroup] || 1;
+
+        // Filter groups I can assign
+        const allGroups = ['ADM', 'Supervisor', 'Operador', 'Visitante'];
+        const allowedGroups = allGroups.filter(g => {
+            const gWeight = hierarchy[g.toUpperCase()] || 1;
+            return myWeight >= gWeight;
+        });
+
+        UI.openModal({
+            title: id ? 'Editar Usuário' : 'Novo Usuário',
+            formHtml: `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="u-nome" class="form-control" value="${item ? item.nome : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Login de Acesso</label>
+                        <input type="text" id="u-login" class="form-control" value="${item ? item.login : ''}" ${id ? 'readonly' : ''}>
+                    </div>
+                    <div class="form-group">
+                        <label>Grupo de Acesso</label>
+                        <select id="u-grupo" class="form-control">
+                            ${allowedGroups.map(g => `<option value="${g}" ${item && item.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}
+                        </select>
+                    </div>
+                    ${!id ? `
+                    <div class="form-group">
+                        <label>Senha Inicial</label>
+                        <input type="password" id="u-pass" class="form-control" value="Senha123">
+                    </div>
+                    ` : ''}
+                </div>
+            `,
+            onSave: () => {
+                const nome = document.getElementById('u-nome').value.trim();
+                const login = document.getElementById('u-login').value.trim();
+                const grupo = document.getElementById('u-grupo').value;
+                
+                if (!nome || !login) return Utils.notify('Preencha os campos obrigatórios.', 'danger');
+
+                const data = { nome, login, grupo };
+                if (!id) {
+                    const pass = document.getElementById('u-pass').value;
+                    if (pass.length < 3) return Utils.notify('Senha muito curta.', 'danger');
+                    data.senha = pass;
+                    Store.insert('users', data);
+                    Utils.notify('Usuário criado!');
+                } else {
+                    Store.update('users', id, data);
+                    Utils.notify('Usuário atualizado!');
+                }
+                this.renderView();
+                return true;
+            }
+        });
+    },
+
+    resetPassword(id) {
+        if (confirm('Deseja realmente redefinir a senha deste usuário para o padrão "Senha123"?')) {
+            Store.update('users', id, { senha: 'Senha123' });
+            Utils.notify('Senha redefinida para Senha123');
+        }
+    },
+
+    changeMyPassword() {
+        UI.openModal({
+            title: 'Alterar Minha Senha',
+            formHtml: `
+                <div class="form-group">
+                    <label>Nova Senha</label>
+                    <input type="password" id="new-pass" class="form-control" placeholder="Mínimo 3 caracteres">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Confirme a Nova Senha</label>
+                    <input type="password" id="confirm-pass" class="form-control">
+                </div>
+            `,
+            onSave: () => {
+                const p1 = document.getElementById('new-pass').value;
+                const p2 = document.getElementById('confirm-pass').value;
+
+                if (!p1 || p1.length < 3) return Utils.notify('Senha muito curta.', 'danger');
+                if (p1 !== p2) return Utils.notify('Senhas não coincidem.', 'danger');
+
+                Store.update('users', App.currentUser.id, { senha: p1 });
+                App.currentUser.senha = p1;
+                Utils.notify('Senha alterada!');
+                return true;
+            }
+        });
+    },
+
+    // --- Grupos ---
+    renderGrupos() {
+        const groups = Store.get('grupos') || [];
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3><i data-lucide="shield"></i> Grupos de Acesso e Permissões</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Defina os níveis de privilégios e responsabilidades para cada perfil de usuário.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Grupo</th>
+                                <th>Descrição das Permissões</th>
+                                <th style="text-align: right; width: 100px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${groups.map(g => `
+                                <tr>
+                                    <td><strong>${g.nome}</strong></td>
+                                    <td><span style="font-size: 0.9rem; color: var(--text-muted);">${g.descricao}</span></td>
+                                    <td style="text-align: right;">
+                                        <button class="icon-btn" onclick="GestaoModule.openGrupoModal('${g.id}')" title="Editar Descrição"><i data-lucide="edit-3"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="info-card" style="margin-top: 1.5rem; background: var(--primary-light); padding: 1.5rem; border-radius: var(--border-radius); border-left: 4px solid var(--primary);">
+                <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+                    <i data-lucide="info" style="width: 18px; height: 18px;"></i> Estrutura de Níveis
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <strong style="display: block; margin-bottom: 0.5rem;">Operador</strong>
+                        <ul style="font-size: 0.8rem; padding-left: 1.25rem; color: var(--text-muted);">
+                            <li>Dashboard Operacional</li>
+                            <li>Lançar Viagens</li>
+                            <li>Lançar Saldo Diário</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 0.5rem;">Supervisor</strong>
+                        <ul style="font-size: 0.8rem; padding-left: 1.25rem; color: var(--text-muted);">
+                            <li>Tudo do Operador</li>
+                            <li>Gestão de Motoristas</li>
+                            <li>Criar/Resetar Usuários</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 0.5rem;">Administrador</strong>
+                        <ul style="font-size: 0.8rem; padding-left: 1.25rem; color: var(--text-muted);">
+                            <li>Tudo do Supervisor</li>
+                            <li>Configurações Globais</li>
+                            <li>Manutenção de Dados</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    openGrupoModal(id) {
+        const item = Store.getById('grupos', id);
+        UI.openModal({
+            title: `Editar Grupo: ${item.nome}`,
+            formHtml: `
+                <div class="form-group">
+                    <label>Título do Grupo</label>
+                    <input type="text" id="g-nome" class="form-control" value="${item.nome}">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Descrição detalhada dos privilégios</label>
+                    <textarea id="g-desc" class="form-control" rows="4">${item.descricao}</textarea>
+                </div>
+            `,
+            onSave: () => {
+                const nome = document.getElementById('g-nome').value.trim();
+                const descricao = document.getElementById('g-desc').value.trim();
+                
+                if (!nome) return Utils.notify('Informe o nome do grupo.', 'danger');
+
+                Store.update('grupos', id, { nome, descricao });
+                Utils.notify('Definições do grupo atualizadas!');
+                this.renderView();
+                return true;
+            }
+        });
+    },
+
+    // --- Manutenção ---
+    renderManutencao() {
+        const config = Store.get('config');
+        const lastBackupStr = config.last_backup ? `Último Backup: ${new Date(config.last_backup).toLocaleString()}` : 'Nenhum backup realizado.';
+
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3><i data-lucide="database"></i> Manutenção de Dados</h3>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">${lastBackupStr}</div>
+                </div>
+                <div class="maintenance-actions" style="padding: 1rem; display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                    
+                    <!-- Backup & Restaura -->
+                    <div class="m-card" style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(56, 189, 248, 0.05);">
+                        <h4 style="margin-bottom: 0.5rem;"><i data-lucide="download"></i> Backup e Importação</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Gerencie a entrada e saída de dados do sistema em formato JSON.</p>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary w-full" onclick="GestaoModule.exportBackup()">Exportar Dados</button>
+                            <label class="btn btn-secondary w-full" style="display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                Importar JSON
+                                <input type="file" id="import-json" style="display:none" onchange="GestaoModule.handleImport(event)">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Limpeza de Dados -->
+                    <div class="m-card" style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(248, 113, 113, 0.05);">
+                        <h4 style="margin-bottom: 0.5rem; color: var(--danger);"><i data-lucide="trash-2"></i> Limpeza de Base</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Remova registros antigos para manter o sistema ágil e organizado.</p>
+                        <button class="btn btn-danger w-full" onclick="GestaoModule.openCleanModal()">Configurar Limpeza</button>
+                    </div>
+
+                </div>
+            </div>
+        `;
+    },
+
+    exportBackup() {
+        const db = Store.loadDB();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `BACKUP_LOGTRANSF_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+
+        // Update backup timestamp
+        Store.update('config', null, { last_backup: new Date().toISOString() });
+        Utils.notify('Backup exportado com sucesso!');
+        this.renderView();
+    },
+
+    handleImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const success = Store.importDB(e.target.result);
+            if (success) {
+                Utils.notify('Dados importados com sucesso! O sistema será reiniciado.', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                Utils.notify('Erro ao importar arquivo. Verifique o formato.', 'danger');
+            }
+        };
+        reader.readAsText(file);
     },
 
     openCleanModal() {

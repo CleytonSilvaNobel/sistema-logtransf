@@ -233,14 +233,32 @@ const App = {
 
     renderView(tab) {
         try {
-            if (tab === 'tab-viagens') ViagensModule.renderView();
-            if (tab === 'tab-saldo') SaldoModule.renderView();
-            if (tab === 'tab-dashboard') DashboardModule.renderView();
-            if (tab === 'tab-configuracoes') GestaoModule.renderSettings();
-            if (tab === 'tab-gestao') GestaoModule.renderManagement();
+            console.log('Rendering tab:', tab);
+            if (tab === 'tab-viagens') {
+                if (window.ViagensModule) ViagensModule.renderView();
+                else console.error('ViagensModule not found');
+            }
+            else if (tab === 'tab-saldo') {
+                if (window.SaldoModule) SaldoModule.renderView();
+                else console.error('SaldoModule not found');
+            }
+            else if (tab === 'tab-dashboard') {
+                if (window.DashboardModule) DashboardModule.renderView();
+                else console.error('DashboardModule not found');
+            }
+            else if (tab === 'tab-configuracoes') {
+                if (window.GestaoModule) GestaoModule.renderSettings();
+                else console.error('GestaoModule not found');
+            }
+            else if (tab === 'tab-gestao') {
+                if (window.GestaoModule) GestaoModule.renderManagement();
+                else console.error('GestaoModule not found');
+            }
+            
             lucide.createIcons();
         } catch (err) {
-            console.error('Render error:', err);
+            console.error('Render error for tab ' + tab + ':', err);
+            Utils.notify('Erro ao carregar a tela: ' + err.message, 'danger');
         }
     }
 };

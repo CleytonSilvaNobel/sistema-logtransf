@@ -28,7 +28,8 @@ const Store = {
         grupos: [
             { id: 'ADM', nome: 'Administrador', descricao: 'Acesso total ao sistema, inclusive manutenção e gestão de grupos.' },
             { id: 'Supervisor', nome: 'Supervisor', descricao: 'Acesso operacional e gestão de usuários. Sem acesso a configurações globais.' },
-            { id: 'Operador', nome: 'Operador', descricao: 'Acesso restrito a lançamentos e visualização de dashboards.' }
+            { id: 'Operador', nome: 'Operador', descricao: 'Acesso restrito a lançamentos e visualização de dashboards.' },
+            { id: 'Visitante', nome: 'Visitante', descricao: 'Acesso total à visualização de dados e dashboards, sem permissão para criar, editar ou excluir registros.' }
         ],
         config: {
             nome_app: 'LogTransf',
@@ -83,6 +84,20 @@ const Store = {
         // Migration: Update legacy data for current logic and security
         if (db.users) {
             let changed = false;
+
+            // Ensure Visitante group exists
+            if (!db.grupos) db.grupos = [...Store._initialState.grupos];
+            if (!db.grupos.find(g => g.id === 'Visitante')) {
+                db.grupos.push({ id: 'Visitante', nome: 'Visitante', descricao: 'Acesso total à visualização de dados e dashboards, sem permissão para criar, editar ou excluir registros.' });
+                changed = true;
+            }
+
+            // Ensure default visitante user exists
+            if (!db.users.find(u => u.login === 'visitante')) {
+                db.users.push({ id: 'u_visitante', nome: 'Visitante', login: 'visitante', senha: 'Senha123', grupo: 'Visitante' });
+                changed = true;
+            }
+
             db.users = db.users.map(u => {
                 const loginLower = String(u.login || '').toLowerCase();
                 // Update legacy group
@@ -99,6 +114,7 @@ const Store = {
             });
             if (changed) Store.saveDB(db);
         }
+
 
         return db;
     },
