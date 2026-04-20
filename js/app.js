@@ -110,7 +110,7 @@ const App = {
 
         this.cacheDOM();
         
-        if (window.GestaoModule) {
+        if (typeof GestaoModule !== 'undefined') {
             GestaoModule.currentTab = 'motoristas';
             GestaoModule.activeArea = 'settings';
         }
@@ -121,7 +121,7 @@ const App = {
         this.checkLastBackup();
 
         // Init AI
-        if (window.AIModule) window.AIModule.init();
+        if (typeof AIModule !== 'undefined') AIModule.init();
     },
 
     applySavedTheme() {
@@ -235,24 +235,24 @@ const App = {
         try {
             console.log('Rendering tab:', tab);
             if (tab === 'tab-viagens') {
-                if (window.ViagensModule) ViagensModule.renderView();
-                else console.error('ViagensModule not found');
+                if (typeof ViagensModule !== 'undefined') ViagensModule.renderView();
+                else throw new Error('ViagensModule não encontrado');
             }
             else if (tab === 'tab-saldo') {
-                if (window.SaldoModule) SaldoModule.renderView();
-                else console.error('SaldoModule not found');
+                if (typeof SaldoModule !== 'undefined') SaldoModule.renderView();
+                else throw new Error('SaldoModule não encontrado');
             }
             else if (tab === 'tab-dashboard') {
-                if (window.DashboardModule) DashboardModule.renderView();
-                else console.error('DashboardModule not found');
+                if (typeof DashboardModule !== 'undefined') DashboardModule.renderView();
+                else throw new Error('DashboardModule não encontrado');
             }
             else if (tab === 'tab-configuracoes') {
-                if (window.GestaoModule) GestaoModule.renderSettings();
-                else console.error('GestaoModule not found');
+                if (typeof GestaoModule !== 'undefined') GestaoModule.renderSettings();
+                else throw new Error('GestaoModule não encontrado');
             }
             else if (tab === 'tab-gestao') {
-                if (window.GestaoModule) GestaoModule.renderManagement();
-                else console.error('GestaoModule not found');
+                if (typeof GestaoModule !== 'undefined') GestaoModule.renderManagement();
+                else throw new Error('GestaoModule não encontrado');
             }
             
             lucide.createIcons();
