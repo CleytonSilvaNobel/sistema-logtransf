@@ -11,22 +11,26 @@ const App = {
         // --- Sincronização Inicial da Nuvem ---
         try {
             if (window.FirebaseDB) {
-                const cloudData = await FirebaseDB.syncLoad();
-                if (cloudData) {
-                    localStorage.setItem(Store._dbKey, JSON.stringify(cloudData));
-                    console.log('Dados sincronizados com a nuvem com sucesso.');
-                }
+                FirebaseDB.listen((cloudData) => {
+                    if (cloudData) {
+                        Store.loadDB();
+                        // Triggers re-render if user is already logged in
+                        if (App.currentUser) {
+                            const activeTab = document.querySelector('.nav-item.active');
+                            if (activeTab) App.switchTab(activeTab);
+                        }
+                    }
+                });
             }
         } catch (e) {
-            console.warn('Modo Offline ativado ou erro na nuvem. Usando cache local.', e);
+            console.warn('Erro ao inicializar Firebase Sync.', e);
         }
 
         Store.loadDB();
         this.applySavedTheme();
         
-        const sessionUser = sessionStorage.getItem('logtransf_user');
-        if (sessionUser) {
-            this.currentUser = JSON.parse(sessionUser);
+        // Removemos sessionStorage para forçar login a cada reinício F5/Fechar aba
+        if (this.currentUser) {
             this.showApp();
         } else {
             this.renderLoginView();
@@ -89,7 +93,7 @@ const App = {
 
         if (user) {
             this.currentUser = user;
-            sessionStorage.setItem('logtransf_user', JSON.stringify(user));
+            // Sessão gravada apenas em memória viva para expirar no F5
             Utils.notify(`Bem-vindo, ${user.nome}!`, 'success');
             this.showApp();
         } else {
@@ -193,16 +197,14 @@ const App = {
             };
         }
 
-        const logoutBtn = document.getElementById('btn-logout');
-        if (logoutBtn) {
-            logoutBtn.onclick = () => {
-                if (confirm('Deseja realmente sair?')) {
-                    sessionStorage.removeItem('logtransf_user');
-                    location.reload();
-                }
+        const btnSair = document.getElementById('btn-logout');
+        if (btnSair) {
+            btnSair.onclick = (e) => {
+                e.preventDefault();
+                this.currentUser = null;
+                App.init(); // Recarrega tela de login
             };
         }
-
         if (this.dateDisplay) {
             this.dateDisplay.textContent = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
         }

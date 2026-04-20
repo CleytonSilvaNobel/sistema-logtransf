@@ -6,7 +6,9 @@
 const DashboardModule = {
     filters: {
         startDate: '',
-        endDate: ''
+        endDate: '',
+        origem: 'Todos',
+        destino: 'Todos'
     },
     
     // Track chart instances to destroy them before re-rendering
@@ -41,12 +43,23 @@ const DashboardModule = {
         const allSaldos = Store.get('saldos');
         const config = Store.get('config');
         const custosAtuais = Store.getCustosForDate(today);
-        const hasCosts = Object.values(custosAtuais).some(v => v > 0);
+        let hasCosts = Object.values(custosAtuais).some(v => v > 0);
+        
+        // Proteção de visibilidade financeira
+        const currentRole = App.currentUser ? String(App.currentUser.grupo || '').toUpperCase() : '';
+        if (!['ADM', 'SUPERVISOR'].includes(currentRole)) {
+            hasCosts = false;
+        }
+        
+        const locais = Store.get('locais') || [];
         
         // Apply Filters
-        const filteredViagens = allViagens.filter(v => 
-            v.data >= this.filters.startDate && v.data <= this.filters.endDate
-        ).sort((a,b) => new Date(a.data) - new Date(b.data));
+        const filteredViagens = allViagens.filter(v => {
+            const matchDate = v.data >= this.filters.startDate && v.data <= this.filters.endDate;
+            const matchOrigem = this.filters.origem === 'Todos' || v.id_origem === this.filters.origem;
+            const matchDestino = this.filters.destino === 'Todos' || v.id_destino === this.filters.destino;
+            return matchDate && matchOrigem && matchDestino;
+        }).sort((a,b) => new Date(a.data) - new Date(b.data));
         
         const filteredSaldos = allSaldos.filter(s => 
             s.data >= this.filters.startDate && s.data <= this.filters.endDate
@@ -88,8 +101,22 @@ const DashboardModule = {
                             <label>Data Final</label>
                             <input type="date" id="dash-end" class="form-control" value="${this.filters.endDate}">
                         </div>
+                        <div class="form-group">
+                            <label>Origem</label>
+                            <select id="dash-origem" class="form-control">
+                                <option value="Todos" ${this.filters.origem === 'Todos' ? 'selected' : ''}>Todas</option>
+                                ${locais.map(l => `<option value="${l.id}" ${this.filters.origem === l.id ? 'selected' : ''}>${l.nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Destino</label>
+                            <select id="dash-destino" class="form-control">
+                                <option value="Todos" ${this.filters.destino === 'Todos' ? 'selected' : ''}>Todos</option>
+                                ${locais.map(l => `<option value="${l.id}" ${this.filters.destino === l.id ? 'selected' : ''}>${l.nome}</option>`).join('')}
+                            </select>
+                        </div>
                         <button class="btn btn-primary" id="btn-apply-filters">
-                            <i data-lucide="filter"></i> Filtrar Período
+                            <i data-lucide="filter"></i> Filtrar
                         </button>
                     </div>
                 </div>
@@ -253,6 +280,8 @@ const DashboardModule = {
         setTimeout(() => {
             this.filters.startDate = document.getElementById('dash-start').value;
             this.filters.endDate = document.getElementById('dash-end').value;
+            this.filters.origem = document.getElementById('dash-origem').value;
+            this.filters.destino = document.getElementById('dash-destino').value;
             this.renderView();
         }, 300);
     },
@@ -654,7 +683,12 @@ const DashboardModule = {
         const carretas = Store.get('carretas');
         const config = Store.get('config');
         const custosAtuais = Store.getCustosForDate(Utils.getToday());
-        const hasCosts = Object.values(custosAtuais).some(v => v > 0);
+        let hasCosts = Object.values(custosAtuais).some(v => v > 0);
+        
+        const currentRole = App.currentUser ? String(App.currentUser.grupo || '').toUpperCase() : '';
+        if (!['ADM', 'SUPERVISOR'].includes(currentRole)) {
+            hasCosts = false;
+        }
 
         const insights = [];
 

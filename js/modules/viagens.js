@@ -62,8 +62,11 @@ const ViagensModule = {
                 <div class="card list-card" style="margin-top: 2rem;">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3><i data-lucide="list"></i> Histórico de Transferências</h3>
-                        <div class="table-actions">
-                            <button class="btn btn-secondary btn-sm" onclick="ViagensModule.exportExcel()"><i data-lucide="download"></i> Excel</button>
+                        <div class="table-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="file" id="import-excel" accept=".xlsx, .xls" style="display: none;" onchange="ViagensModule.importExcel(event)">
+                            <button class="btn btn-secondary btn-sm" onclick="ViagensModule.downloadModel()"><i data-lucide="download-cloud"></i> Baixar Modelo</button>
+                            <button class="btn btn-primary btn-sm" onclick="document.getElementById('import-excel').click()"><i data-lucide="upload"></i> Importar Excel</button>
+                            <button class="btn btn-secondary btn-sm" onclick="ViagensModule.exportExcel()"><i data-lucide="download"></i> Exportar</button>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -91,6 +94,15 @@ const ViagensModule = {
                                     const motorista = Store.getById('motoristas', v.id_motorista);
                                     const statusClass = v.ocupacao >= 90 ? 'status-green' : (v.ocupacao >= 70 ? 'status-yellow' : 'status-red');
                                     
+                                    const diffDias = Math.floor((new Date() - new Date(v.data)) / (1000 * 60 * 60 * 24));
+                                    const role = App.currentUser ? String(App.currentUser.grupo || '').toUpperCase() : '';
+                                    const canEdit = diffDias <= 7 || ['ADM', 'SUPERVISOR'].includes(role);
+                                    
+                                    const actionsHtml = canEdit ? `
+                                        <button class="icon-btn" onclick="ViagensModule.edit('${v.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
+                                        <button class="icon-btn danger" onclick="ViagensModule.delete('${v.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+                                    ` : `<span title="Bloqueado: Registro > 7 dias" style="padding: 0.5rem; display:inline-block;"><i data-lucide="lock" style="width:16px;height:16px;color:#94a3b8"></i></span>`;
+                                    
                                     return `
                                         <tr>
                                             <td>${Utils.formatDate(v.data)}</td>
@@ -108,10 +120,7 @@ const ViagensModule = {
                                                     <span>${Utils.formatNumber(v.ocupacao, 1)}%</span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <button class="icon-btn" onclick="ViagensModule.edit('${v.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
-                                                <button class="icon-btn danger" onclick="ViagensModule.delete('${v.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
-                                            </td>
+                                            <td>${actionsHtml}</td>
                                         </tr>
                                     `;
                                 }).join('')}
@@ -273,6 +282,100 @@ const ViagensModule = {
                 XLSX.writeFile(wb, `LogTransf_Viagens_${range.start}_${range.end}.xlsx`);
             }
         });
+    },
+
+    downloadModel() {
+        const wb = XLSX.utils.book_new();
+        const modelData = [
+            {
+                'Data (AAAA-MM-DD)': '2023-12-01',
+                'ID Carreta (Ex: c1, c2)': 'c1',
+                'ID Motorista (Ex: m1)': 'm1',
+                'Qtd Paletes': 28,
+                'ID Origem (Ex: l1, l2)': 'l1',
+                'ID Destino': 'l2'
+            }
+        ];
+        const ws = XLSX.utils.json_to_sheet(modelData);
+        XLSX.utils.book_append_sheet(wb, ws, "Modelo_Importacao");
+        XLSX.writeFile(wb, "Modelo_Importacao_Viagens.xlsx");
+        Utils.notify('Modelo exportado para preenchimento. Mantenha os cabeçalhos intocados.', 'info');
+    },
+
+    importExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheet];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+
+                if(json.length === 0) return Utils.notify('A planilha está vazia.', 'warning');
+
+                let importedCount = 0;
+                let viagens = Store.get('viagens');
+
+                json.forEach(row => {
+                    const rawData = row['Data (AAAA-MM-DD)'];
+                    const carretaId = String(row['ID Carreta (Ex: c1, c2)']||'').trim();
+                    const motoristaId = String(row['ID Motorista (Ex: m1)']||'').trim();
+                    const paletes = parseInt(row['Qtd Paletes']);
+                    const origemId = String(row['ID Origem (Ex: l1, l2)']||'').trim();
+                    const destinoId = String(row['ID Destino']||'').trim();
+
+                    if (!rawData || !carretaId || !paletes || isNaN(paletes)) return;
+
+                    const carreta = Store.getById('carretas', carretaId);
+                    if (!carreta) return; // ignora linha com carreta inválida
+                    
+                    const dataFormatada = typeof rawData === 'number' 
+                        ? new Date(Math.round((rawData - 25569) * 86400 * 1000)).toISOString().split('T')[0] 
+                        : String(rawData).trim();
+
+                    const tripsToday = viagens.filter(v => v.data === dataFormatada);
+                    const nextSeq = tripsToday.length > 0 ? Math.max(...tripsToday.map(t => t.sequencial)) + 1 : 1;
+                    const ocupacao = Utils.calculatePercent(paletes, carreta.capacidade);
+
+                    const newViagem = {
+                        id: 'v_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+                        data: dataFormatada,
+                        sequencial: nextSeq,
+                        tipo: 'Saída',
+                        id_tipo_carreta: carretaId,
+                        id_motorista: motoristaId,
+                        id_origem: origemId,
+                        id_destino: destinoId,
+                        quantidade_paletes: paletes,
+                        capacidade_carreta: carreta.capacidade,
+                        ocupacao: ocupacao,
+                        mes_referencia: Utils.getMonthRef(dataFormatada)
+                    };
+                    
+                    viagens.push(newViagem);
+                    importedCount++;
+                });
+
+                localStorage.setItem('logtransf_viagens', JSON.stringify(viagens));
+                Store.loadDB();
+                
+                if (window.FirebaseDB) FirebaseDB.syncSave(Store.getAll());
+                
+                Utils.notify(`${importedCount} viagens importadas com sucesso!`, 'success');
+                this.renderView();
+
+            } catch (err) {
+                console.error(err);
+                Utils.notify('Erro ao ler XLSX. Tem certeza que usou o formato do modelo?', 'danger');
+            }
+            // Reset input
+            event.target.value = '';
+        };
+        reader.readAsArrayBuffer(file);
     }
 };
 

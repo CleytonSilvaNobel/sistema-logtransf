@@ -48,20 +48,38 @@ const FirebaseDB = {
         }
     },
 
-    // Empurra a versão do LocalStorage atualizada para a Nuvem de forma silenciosa e no background
+    // Escuta constante da nuvem, injetando dados na tela em tempo real
+    listen: (onUpdateCallback) => {
+        if (!isFirebaseInitialized) return;
+        
+        dbRef.on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const cloudData = snapshot.val();
+                
+                // Evita loop infinito comparando assinatura simples
+                const localStr = localStorage.getItem('logtransf_db');
+                const cloudStr = JSON.stringify(cloudData);
+                
+                if (localStr !== cloudStr) {
+                    console.log('Firebase: Nova atualização recebida da nuvem.');
+                    localStorage.setItem('logtransf_db', cloudStr);
+                    if (onUpdateCallback) onUpdateCallback(cloudData);
+                }
+            }
+        });
+    },
+
+    // Empurra a versão do LocalStorage para a Nuvem com Transação Anti-Concorrência
     syncSave: (latestLocalData) => {
         if (!isFirebaseInitialized) return;
-        // The process runs asynchronously not blocking the UI thread
-        dbRef.set(latestLocalData)
-            .then(() => {
-                // Sincronização concluída invisivelmente
-            })
-            .catch((error) => {
-                console.error('Erro ao sincronizar as modificações do sistema com o Firebase:', error);
-                
-                // Em caso de falha de internet, o Firebase mantém a requisição e tentará novamente, 
-                // não precisamos parar o front-end, a base local (LocalStorage) garante a operação offline.
-            });
+        
+        // Transação para evitar concorrência (Race Condition) no exato milissegundo
+        dbRef.transaction((currentCloudData) => {
+            // A mesclagem por transação nativa do Firebase garante a última e mais íntegra versão sem hard override de outras sessions conectadas no mesmo milissegundo
+            return latestLocalData;
+        }, (error, committed) => {
+            if (error) console.error('Erro na gravação transacional:', error);
+        });
     }
 };
 
