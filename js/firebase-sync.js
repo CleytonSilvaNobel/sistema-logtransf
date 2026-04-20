@@ -24,9 +24,9 @@ const FirebaseDB = {
                 firebase.initializeApp(firebaseConfig);
             }
             // Use Realtime Database connection
-            dbRef = firebase.database().ref('logtransf_db'); 
+            dbRef = firebase.database().ref('logtransf_db_v1'); 
             isFirebaseInitialized = true;
-            console.log('Firebase Cloud Database Conectado.');
+            console.log('Firebase Cloud Database Conectado (logtransf_db_v1).');
         } catch (error) {
             console.error('Falha ao inicializar o Firebase. Verifique suas chaves.', error);
         }
@@ -76,12 +76,18 @@ const FirebaseDB = {
     syncSave: (latestLocalData) => {
         if (!isFirebaseInitialized) return;
         
+        console.log('Firebase: Iniciando sincronização com a nuvem...');
+        
         // Transação para evitar concorrência (Race Condition) no exato milissegundo
         dbRef.transaction((currentCloudData) => {
             // A mesclagem por transação nativa do Firebase garante a última e mais íntegra versão sem hard override de outras sessions conectadas no mesmo milissegundo
             return latestLocalData;
         }, (error, committed) => {
-            if (error) console.error('Erro na gravação transacional:', error);
+            if (error) {
+                console.error('Firebase: Erro na gravação transacional:', error);
+            } else if (committed) {
+                console.log('Firebase: Dados sincronizados com sucesso (logtransf_db_v1).');
+            }
         });
     }
 };
