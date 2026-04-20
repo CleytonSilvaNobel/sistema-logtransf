@@ -52,17 +52,20 @@ const FirebaseDB = {
     listen: (onUpdateCallback) => {
         if (!isFirebaseInitialized) return;
         
+        // Chave DEVE ser idêntica à usada em Store._dbKey
+        const DB_KEY = 'logtransf_db_v1';
+        
         dbRef.on('value', (snapshot) => {
             if (snapshot.exists()) {
                 const cloudData = snapshot.val();
                 
                 // Evita loop infinito comparando assinatura simples
-                const localStr = localStorage.getItem('logtransf_db');
+                const localStr = localStorage.getItem(DB_KEY);
                 const cloudStr = JSON.stringify(cloudData);
                 
                 if (localStr !== cloudStr) {
                     console.log('Firebase: Nova atualização recebida da nuvem.');
-                    localStorage.setItem('logtransf_db', cloudStr);
+                    localStorage.setItem(DB_KEY, cloudStr);
                     if (onUpdateCallback) onUpdateCallback(cloudData);
                 }
             }
