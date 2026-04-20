@@ -6,8 +6,11 @@ const SaldoModule = {
     renderView() {
         const saldos = Store.get('saldos').sort((a,b) => new Date(b.data) - new Date(a.data));
         
+        const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
+
         const content = `
             <div class="module-container">
+                ${!isVisitor ? `
                 <div class="card registration-card">
                     <div class="card-header">
                         <h3><i data-lucide="package-plus"></i> Registrar Saldo do Dia</h3>
@@ -35,6 +38,16 @@ const SaldoModule = {
                         </div>
                     </form>
                 </div>
+                ` : `
+                <div class="info-card" style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--border-radius); border-left: 4px solid var(--primary); margin-bottom: 2rem;">
+                    <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                        <i data-lucide="eye"></i> Modo de Visualização (Saldos)
+                    </h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        Apenas visualização do histórico de saldos comerciais. Lançamentos bloqueados.
+                    </p>
+                </div>
+                `}
 
                 <div class="card list-card" style="margin-top: 2rem;">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -66,7 +79,9 @@ const SaldoModule = {
                                             <td>${Utils.formatNumber(sentToday)} plts</td>
                                             <td><small>${s.observacao || '-'}</small></td>
                                             <td>
-                                                <button class="icon-btn danger" onclick="SaldoModule.delete('${s.data}')"><i data-lucide="trash-2"></i></button>
+                                                ${!isVisitor ? `
+                                                    <button class="icon-btn danger" onclick="SaldoModule.delete('${s.data}')"><i data-lucide="trash-2"></i></button>
+                                                ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
                                             </td>
                                         </tr>
                                     `;
