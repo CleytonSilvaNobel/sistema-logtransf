@@ -107,15 +107,17 @@ const GestaoModule = {
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th style="width: 80px;">ID</th>
                                 <th>Nome</th>
                                 <th>Status</th>
                                 <th style="text-align: right;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${motoristas.length === 0 ? '<tr><td colspan="3" style="text-align:center; padding: 2rem; color: var(--text-muted);">Nenhum motorista cadastrado.</td></tr>' : ''}
+                            ${motoristas.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-muted);">Nenhum motorista cadastrado.</td></tr>' : ''}
                             ${motoristas.map(m => `
                                 <tr>
+                                    <td><code class="id-badge">${m.id}</code></td>
                                     <td><strong>${m.nome}</strong></td>
                                     <td><span class="status-badge ${m.ativo ? 'success' : 'danger'}">${m.ativo ? 'Ativo' : 'Inativo'}</span></td>
                                     <td style="text-align: right;">
@@ -182,6 +184,7 @@ const GestaoModule = {
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th style="width: 80px;">ID</th>
                                 <th>Nome</th>
                                 <th>Tipo</th>
                                 <th style="text-align: right;">Ações</th>
@@ -190,6 +193,7 @@ const GestaoModule = {
                         <tbody>
                             ${locais.map(l => `
                                 <tr>
+                                    <td><code class="id-badge">${l.id}</code></td>
                                     <td><strong>${l.nome}</strong></td>
                                     <td><span class="status-badge">${l.tipo || 'Padrão'}</span></td>
                                     <td style="text-align: right;">
@@ -237,6 +241,7 @@ const GestaoModule = {
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th style="width: 80px;">ID</th>
                                 <th>Descrição</th>
                                 <th>Capacidade (Plts)</th>
                                 <th style="text-align: right;">Ações</th>
@@ -245,6 +250,7 @@ const GestaoModule = {
                         <tbody>
                             ${carretas.map(c => `
                                 <tr>
+                                    <td><code class="id-badge">${c.id}</code></td>
                                     <td><strong>${c.descricao}</strong></td>
                                     <td>${c.capacidade} plts</td>
                                     <td style="text-align: right;">

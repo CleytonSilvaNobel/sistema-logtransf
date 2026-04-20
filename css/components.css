@@ -61,3 +61,15 @@
 .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
 .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
 .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+/* ID Badge */
+.id-badge {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.75rem;
+    background: var(--bg-main);
+    color: var(--text-muted);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border-color);
+    font-weight: 500;
+}
