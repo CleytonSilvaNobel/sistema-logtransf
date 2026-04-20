@@ -8,8 +8,12 @@ const ViagensModule = {
         const locais = Store.get('locais');
         const viagens = Store.get('viagens').sort((a,b) => new Date(b.data) - new Date(a.data));
 
+        const userGroup = String(App.currentUser.grupo || '').toUpperCase();
+        const isVisitor = userGroup === 'VISITANTE';
+
         const content = `
             <div class="module-container">
+                ${!isVisitor ? `
                 <div class="card registration-card">
                     <div class="card-header">
                         <h3><i data-lucide="plus-circle"></i> Registrar Nova Viagem</h3>
@@ -58,14 +62,26 @@ const ViagensModule = {
                         </div>
                     </form>
                 </div>
+                ` : `
+                <div class="info-card" style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--border-radius); border-left: 4px solid var(--primary); margin-bottom: 2rem;">
+                    <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                        <i data-lucide="eye"></i> Modo de Visualização
+                    </h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        Você está logado como <strong>Visitante</strong>. O acesso é restrito apenas à consulta de dados e dashboards. Funções de lançamento e edição estão desativadas.
+                    </p>
+                </div>
+                `}
 
                 <div class="card list-card" style="margin-top: 2rem;">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3><i data-lucide="list"></i> Histórico de Transferências</h3>
                         <div class="table-actions" style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="file" id="import-excel" accept=".xlsx, .xls" style="display: none;" onchange="ViagensModule.importExcel(event)">
-                            <button class="btn btn-secondary btn-sm" onclick="ViagensModule.downloadModel()"><i data-lucide="download-cloud"></i> Baixar Modelo</button>
-                            <button class="btn btn-primary btn-sm" onclick="document.getElementById('import-excel').click()"><i data-lucide="upload"></i> Importar Excel</button>
+                            ${!isVisitor ? `
+                                <input type="file" id="import-excel" accept=".xlsx, .xls" style="display: none;" onchange="ViagensModule.importExcel(event)">
+                                <button class="btn btn-secondary btn-sm" onclick="ViagensModule.downloadModel()"><i data-lucide="download-cloud"></i> Baixar Modelo</button>
+                                <button class="btn btn-primary btn-sm" onclick="document.getElementById('import-excel').click()"><i data-lucide="upload"></i> Importar Excel</button>
+                            ` : ''}
                             <button class="btn btn-secondary btn-sm" onclick="ViagensModule.exportExcel()"><i data-lucide="download"></i> Exportar</button>
                         </div>
                     </div>
@@ -95,13 +111,13 @@ const ViagensModule = {
                                     const statusClass = v.ocupacao >= 90 ? 'status-green' : (v.ocupacao >= 70 ? 'status-yellow' : 'status-red');
                                     
                                     const diffDias = Math.floor((new Date() - new Date(v.data)) / (1000 * 60 * 60 * 24));
-                                    const role = App.currentUser ? String(App.currentUser.grupo || '').toUpperCase() : '';
-                                    const canEdit = diffDias <= 7 || ['ADM', 'SUPERVISOR'].includes(role);
+                                    const role = userGroup;
+                                    const canEdit = !isVisitor && (diffDias <= 7 || ['ADM', 'SUPERVISOR'].includes(role));
                                     
                                     const actionsHtml = canEdit ? `
                                         <button class="icon-btn" onclick="ViagensModule.edit('${v.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
                                         <button class="icon-btn danger" onclick="ViagensModule.delete('${v.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
-                                    ` : `<span title="Bloqueado: Registro > 7 dias" style="padding: 0.5rem; display:inline-block;"><i data-lucide="lock" style="width:16px;height:16px;color:#94a3b8"></i></span>`;
+                                    ` : `<span title="${isVisitor ? 'Somente Leitura' : 'Bloqueado: Registro > 7 dias'}" style="padding: 0.5rem; display:inline-block;"><i data-lucide="lock" style="width:16px;height:16px;color:#94a3b8"></i></span>`;
                                     
                                     return `
                                         <tr>
@@ -148,6 +164,9 @@ const ViagensModule = {
     },
 
     save() {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite lançamentos.', 'warning');
+        }
         const data = document.getElementById('v-data').value;
         const carretaId = document.getElementById('v-carreta').value;
         const paletes = parseInt(document.getElementById('v-paletes').value);
@@ -183,6 +202,9 @@ const ViagensModule = {
     },
 
     edit(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite edição.', 'warning');
+        }
         const v = Store.getById('viagens', id);
         if (!v) return;
 
@@ -244,6 +266,9 @@ const ViagensModule = {
     },
 
     delete(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite exclusão.', 'warning');
+        }
         if (confirm('Deseja realmente excluir esta viagem?')) {
             Store.delete('viagens', id);
             Utils.notify('Viagem excluída.', 'success');
@@ -303,6 +328,9 @@ const ViagensModule = {
     },
 
     importExcel(event) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite importação.', 'warning');
+        }
         const file = event.target.files[0];
         if (!file) return;
 

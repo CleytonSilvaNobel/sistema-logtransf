@@ -38,6 +38,17 @@ const GestaoModule = {
         lucide.createIcons();
     },
 
+    removeDataItem(collection, id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite exclusão.', 'warning');
+        }
+        if (confirm('Deseja realmente remover este item?')) {
+            Store.delete(collection, id);
+            Utils.notify('Item removido com sucesso.');
+            this.renderView();
+        }
+    },
+
     renderSubNav() {
         const userGroup = String(App.currentUser.grupo || '').toUpperCase();
         
@@ -139,6 +150,9 @@ const GestaoModule = {
     },
 
     openMotoristaModal(id = null) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const item = id ? Store.getById('motoristas', id) : null;
         const formHtml = `
             <div class="form-group">
@@ -220,6 +234,9 @@ const GestaoModule = {
     },
 
     openLocalModal(id = null) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const item = id ? Store.getById('locais', id) : null;
         UI.openModal({
             title: id ? 'Editar Local' : 'Novo Local',
@@ -384,6 +401,9 @@ const GestaoModule = {
     },
 
     saveCustos() {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const dataVigencia = document.getElementById('custo-data').value;
         if (!dataVigencia) {
             Utils.notify('Informe a data de vigência do custo.', 'error');
@@ -438,6 +458,9 @@ const GestaoModule = {
     },
 
     deleteCustoHistorico(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite exclusão.', 'warning');
+        }
         if (!confirm('Tem certeza que deseja excluir este registro de custo? Viagens retroativas podem ser impactadas pelo recálculo.')) {
             return;
         }
@@ -457,6 +480,9 @@ const GestaoModule = {
     },
 
     openCarretaModal(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const item = Store.getById('carretas', id);
         UI.openModal({
             title: 'Editar Carreta',
@@ -541,6 +567,9 @@ const GestaoModule = {
     },
 
     openUserModal(id = null) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const item = id ? Store.getById('users', id) : null;
         
         const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
@@ -605,6 +634,9 @@ const GestaoModule = {
     },
 
     resetPassword(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         if (confirm('Deseja realmente redefinir a senha deste usuário para o padrão "Senha123"?')) {
             Store.update('users', id, { senha: 'Senha123' });
             Utils.notify('Senha redefinida para Senha123');
@@ -707,6 +739,9 @@ const GestaoModule = {
     },
 
     openGrupoModal(id) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
         const item = Store.getById('grupos', id);
         UI.openModal({
             title: `Editar Grupo: ${item.nome}`,

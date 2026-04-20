@@ -110,6 +110,9 @@ const SaldoModule = {
     },
 
     save() {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite lançar saldos.', 'warning');
+        }
         const data = document.getElementById('s-data').value;
         const saldo = parseInt(document.getElementById('s-quantidade').value);
         const obs = document.getElementById('s-obs').value;
@@ -133,6 +136,9 @@ const SaldoModule = {
     },
 
     delete(date) {
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite exclusão.', 'warning');
+        }
         if (confirm(`Deseja excluir o registro de saldo do dia ${Utils.formatDate(date)}?`)) {
             const saldos = Store.get('saldos').filter(s => s.data !== date);
             Store.set('saldos', saldos);
