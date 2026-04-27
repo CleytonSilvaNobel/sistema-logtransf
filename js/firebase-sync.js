@@ -35,16 +35,20 @@ const FirebaseDB = {
     // Puxa toda a árvore de dados da nuvem para preencher o LocalStorage (Chamado 1x no login)
     syncLoad: async () => {
         if (!isFirebaseInitialized) return null;
+        const DB_KEY = 'logtransf_db_v1';
         try {
             const snapshot = await dbRef.once('value');
             if (snapshot.exists()) {
                 const cloudData = snapshot.val();
+                localStorage.setItem(DB_KEY, JSON.stringify(cloudData));
+                console.log('Firebase: Dados carregados da nuvem com sucesso (LogTransf syncLoad).');
                 return cloudData;
             }
-            return null; // DB was empty
+            console.log('Firebase: Nuvem vazia, usando dados locais.');
+            return null;
         } catch (error) {
             console.error('Erro ao baixar os dados do Firebase:', error);
-            throw error;
+            return null;
         }
     },
 

@@ -30,11 +30,20 @@ const App = {
         this.applySavedTheme();
         
         // Escutar estado de autenticação do Firebase
-        firebase.auth().onAuthStateChanged((user) => {
+        firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
+                // PASSO CRÍTICO: Puxar dados da nuvem ANTES de verificar permissões
+                if (typeof FirebaseDB !== 'undefined' && FirebaseDB.syncLoad) {
+                    try {
+                        await FirebaseDB.syncLoad();
+                    } catch (e) {
+                        console.warn('Falha ao sincronizar dados da nuvem antes do login:', e);
+                    }
+                }
+
                 // Usuário está logado no Firebase. Vamos cruzar o e-mail dele com a nossa base.
                 const users = Store.get('users');
-                const localUser = users.find(u => u.login.toLowerCase() === user.email.toLowerCase());
+                const localUser = users.find(u => u.login && u.login.toLowerCase() === user.email.toLowerCase());
                 
                 if (localUser) {
                     App.currentUser = localUser;
