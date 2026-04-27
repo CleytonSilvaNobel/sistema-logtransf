@@ -124,7 +124,10 @@ const App = {
         btn.innerHTML = '<i data-lucide="loader" class="spin"></i> Conectando...';
         btn.disabled = true;
 
-        firebase.auth().signInWithEmailAndPassword(userVal, passVal)
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+            .then(() => {
+                return firebase.auth().signInWithEmailAndPassword(userVal, passVal);
+            })
             .then((userCredential) => {
                 // Sucesso! O onAuthStateChanged vai capturar e liberar o showApp()
                 Utils.notify('Login autorizado pelo Firebase!', 'success');
