@@ -73,19 +73,33 @@ const FirebaseDB = {
     },
 
     // Empurra a versão do LocalStorage para a Nuvem com Transação Anti-Concorrência
-    syncSave: (latestLocalData) => {
+    syncSave: (latestLocalData, isManualWipe = false) => {
         if (!isFirebaseInitialized) return;
         
         console.log('Firebase: Iniciando sincronização com a nuvem...');
         
         // Transação para evitar concorrência (Race Condition) no exato milissegundo
         dbRef.transaction((currentCloudData) => {
-            // A mesclagem por transação nativa do Firebase garante a última e mais íntegra versão sem hard override de outras sessions conectadas no mesmo milissegundo
+            // ANTI-WIPE SAFETY: Impede que um dispositivo novo/vazio zere a nuvem
+            if (currentCloudData && !isManualWipe) {
+                const cloudViagens = currentCloudData.viagens ? currentCloudData.viagens.length : 0;
+                const localViagens = latestLocalData.viagens ? latestLocalData.viagens.length : 0;
+                
+                // Se a nuvem tem viagens cadastradas e o local não, é provável que seja um carregamento acidental de esqueleto vazio.
+                if (cloudViagens > 0 && localViagens === 0) {
+                    console.warn('SAFETY LOCK: Tentativa de sobrescrever nuvem com dados vazios bloqueada.');
+                    return; // Aborta a transação para não zerar a base
+                }
+            }
+
+            // A mesclagem por transação nativa do Firebase garante a última e mais íntegra versão
             return latestLocalData;
-        }, (error, committed) => {
+        }, (error, committed, snapshot) => {
             if (error) {
                 console.error('Firebase: Erro na gravação transacional:', error);
-            } else if (committed) {
+            } else if (!committed) {
+                console.log('Firebase: Gravação abortada (Trava de Segurança Anti-Wipe acionada).');
+            } else {
                 console.log('Firebase: Dados sincronizados com sucesso (logtransf_db_v1).');
             }
         });
