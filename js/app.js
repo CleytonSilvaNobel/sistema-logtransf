@@ -39,10 +39,23 @@ const App = {
                 if (localUser) {
                     App.currentUser = localUser;
                     App.showApp();
+                } else if (user.email.toLowerCase() === 'cleyton.silva@nobelpack.com.br' || user.email.toLowerCase() === 'admin@nobelpack.com.br') {
+                    const newAdm = {
+                        id: Utils.generateId(8),
+                        nome: 'Cleyton Silva (ADM)',
+                        login: user.email.toLowerCase(),
+                        senha: 'Protegida (Firebase)',
+                        grupo: 'ADM'
+                    };
+                    users.push(newAdm);
+                    Store.set('users', users);
+                    App.currentUser = newAdm;
+                    App.showApp();
+                    Utils.notify('Perfil de Administrador vinculado com sucesso!', 'success');
                 } else {
                     // Está logado no Google, mas não existe no nosso DB.
                     firebase.auth().signOut();
-                    Utils.notify('Usuário sem permissões no sistema.', 'danger');
+                    Utils.notify('Usuário sem permissões no sistema interno.', 'danger');
                     App.renderLoginView();
                 }
             } else {
