@@ -592,8 +592,8 @@ const GestaoModule = {
                         <input type="text" id="u-nome" class="form-control" value="${item ? item.nome : ''}">
                     </div>
                     <div class="form-group">
-                        <label>Login de Acesso</label>
-                        <input type="text" id="u-login" class="form-control" value="${item ? item.login : ''}" ${id ? 'readonly' : ''}>
+                        <label>E-mail de Acesso (Login)</label>
+                        <input type="email" id="u-login" class="form-control" value="${item ? item.login : ''}" ${id ? 'readonly' : ''} placeholder="usuario@nobelpack.com.br">
                     </div>
                     <div class="form-group">
                         <label>Grupo de Acesso</label>
@@ -611,7 +611,7 @@ const GestaoModule = {
             `,
             onSave: () => {
                 const nome = document.getElementById('u-nome').value.trim();
-                const login = document.getElementById('u-login').value.trim();
+                const login = document.getElementById('u-login').value.trim().toLowerCase();
                 const grupo = document.getElementById('u-grupo').value;
                 
                 if (!nome || !login) return Utils.notify('Preencha os campos obrigatórios.', 'danger');
@@ -619,16 +619,37 @@ const GestaoModule = {
                 const data = { nome, login, grupo };
                 if (!id) {
                     const pass = document.getElementById('u-pass').value;
-                    if (pass.length < 3) return Utils.notify('Senha muito curta.', 'danger');
-                    data.senha = pass;
-                    Store.insert('users', data);
-                    Utils.notify('Usuário criado!');
+                    if (pass.length < 6) return Utils.notify('A senha no Google precisa ter no mínimo 6 caracteres.', 'danger');
+                    data.senha = 'Protegida (Firebase)';
+
+                    Utils.notify('Criando usuário de forma segura...', 'info');
+
+                    // Usa app secundário para criar usuário no Google sem deslogar o ADM
+                    const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary" + Date.now());
+                    secondaryApp.auth().createUserWithEmailAndPassword(login, pass)
+                        .then(() => {
+                            secondaryApp.auth().signOut();
+                            secondaryApp.delete();
+                            Store.insert('users', data);
+                            Utils.notify('Usuário criado com sucesso no Firebase!', 'success');
+                            GestaoModule.renderView();
+                        })
+                        .catch(error => {
+                            secondaryApp.delete();
+                            console.error(error);
+                            let msg = 'Erro ao criar conta.';
+                            if(error.code === 'auth/email-already-in-use') msg = 'Este e-mail já existe no Firebase.';
+                            else if(error.code === 'auth/invalid-email') msg = 'Formato de e-mail inválido.';
+                            Utils.notify(msg, 'danger');
+                        });
+                    
+                    return true; // Fecha o modal, a operação assíncrona avisa depois
                 } else {
                     Store.update('users', id, data);
-                    Utils.notify('Usuário atualizado!');
+                    Utils.notify('Perfil do usuário atualizado!');
+                    this.renderView();
+                    return true;
                 }
-                this.renderView();
-                return true;
             }
         });
     },
@@ -637,38 +658,36 @@ const GestaoModule = {
         if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
             return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
         }
-        if (confirm('Deseja realmente redefinir a senha deste usuário para o padrão "Senha123"?')) {
-            Store.update('users', id, { senha: 'Senha123' });
-            Utils.notify('Senha redefinida para Senha123');
+        
+        const user = Store.getById('users', id);
+        if (!user) return Utils.notify('Usuário não encontrado', 'error');
+
+        if (confirm('Deseja enviar um e-mail oficial do Firebase para redefinição de senha deste usuário?')) {
+            firebase.auth().sendPasswordResetEmail(user.login)
+                .then(() => {
+                    Utils.notify('E-mail enviado com sucesso!', 'success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    Utils.notify('Erro ao enviar e-mail. Verifique se o formato do login está correto.', 'danger');
+                });
         }
     },
 
     changeMyPassword() {
-        UI.openModal({
-            title: 'Alterar Minha Senha',
-            formHtml: `
-                <div class="form-group">
-                    <label>Nova Senha</label>
-                    <input type="password" id="new-pass" class="form-control" placeholder="Mínimo 3 caracteres">
-                </div>
-                <div class="form-group" style="margin-top: 1rem;">
-                    <label>Confirme a Nova Senha</label>
-                    <input type="password" id="confirm-pass" class="form-control">
-                </div>
-            `,
-            onSave: () => {
-                const p1 = document.getElementById('new-pass').value;
-                const p2 = document.getElementById('confirm-pass').value;
-
-                if (!p1 || p1.length < 3) return Utils.notify('Senha muito curta.', 'danger');
-                if (p1 !== p2) return Utils.notify('Senhas não coincidem.', 'danger');
-
-                Store.update('users', App.currentUser.id, { senha: p1 });
-                App.currentUser.senha = p1;
-                Utils.notify('Senha alterada!');
-                return true;
-            }
-        });
+        if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
+            return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
+        }
+        if (confirm('Deseja receber o e-mail oficial de redefinição de senha para sua conta atual?')) {
+            firebase.auth().sendPasswordResetEmail(App.currentUser.login)
+                .then(() => {
+                    Utils.notify('Verifique sua caixa de entrada para alterar a senha.', 'success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    Utils.notify('Erro ao enviar o e-mail de redefinição.', 'danger');
+                });
+        }
     },
 
     // --- Grupos ---

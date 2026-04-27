@@ -29,12 +29,27 @@ const App = {
         Store.loadDB();
         this.applySavedTheme();
         
-        // Removemos sessionStorage para forçar login a cada reinício F5/Fechar aba
-        if (this.currentUser) {
-            this.showApp();
-        } else {
-            this.renderLoginView();
-        }
+        // Escutar estado de autenticação do Firebase
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // Usuário está logado no Firebase. Vamos cruzar o e-mail dele com a nossa base.
+                const users = Store.get('users');
+                const localUser = users.find(u => u.login.toLowerCase() === user.email.toLowerCase());
+                
+                if (localUser) {
+                    App.currentUser = localUser;
+                    App.showApp();
+                } else {
+                    // Está logado no Google, mas não existe no nosso DB.
+                    firebase.auth().signOut();
+                    Utils.notify('Usuário sem permissões no sistema.', 'danger');
+                    App.renderLoginView();
+                }
+            } else {
+                App.currentUser = null;
+                App.renderLoginView();
+            }
+        });
     },
 
     renderLoginView() {
@@ -55,11 +70,14 @@ const App = {
                     
                     <div class="login-form">
                         <div class="form-group">
-                            <label>USUÁRIO</label>
-                            <input type="text" id="login-user" class="form-control" placeholder="Seu login" autofocus>
+                            <label>E-MAIL</label>
+                            <input type="email" id="login-user" class="form-control" placeholder="Seu e-mail" autofocus>
                         </div>
                         <div class="form-group">
-                            <label>SENHA</label>
+                            <div style="display: flex; justify-content: space-between;">
+                                <label>SENHA</label>
+                                <a href="#" onclick="App.handleResetPassword(); return false;" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Esqueci a senha</a>
+                            </div>
                             <input type="password" id="login-pass" class="form-control" placeholder="Sua senha">
                         </div>
                         <button id="btn-login-submit" class="btn btn-primary login-btn">
@@ -87,18 +105,43 @@ const App = {
         const passVal = document.getElementById('login-pass').value;
 
         if (!userVal || !passVal) return Utils.notify('Preencha todos os campos.', 'warning');
+        
+        const btn = document.getElementById('btn-login-submit');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader" class="spin"></i> Conectando...';
+        btn.disabled = true;
 
-        const users = Store.get('users');
-        const user = users.find(u => u.login.toLowerCase() === userVal.toLowerCase() && u.senha === passVal);
+        firebase.auth().signInWithEmailAndPassword(userVal, passVal)
+            .then((userCredential) => {
+                // Sucesso! O onAuthStateChanged vai capturar e liberar o showApp()
+                Utils.notify('Login autorizado pelo Firebase!', 'success');
+            })
+            .catch((error) => {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+                lucide.createIcons();
+                console.error(error);
+                let msg = 'Falha no login. Verifique e-mail e senha.';
+                if (error.code === 'auth/invalid-credential') msg = 'E-mail ou senha incorretos.';
+                else if (error.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Conta bloqueada temporariamente.';
+                Utils.notify(msg, 'danger');
+            });
+    },
 
-        if (user) {
-            this.currentUser = user;
-            // Sessão gravada apenas em memória viva para expirar no F5
-            Utils.notify(`Bem-vindo, ${user.nome}!`, 'success');
-            this.showApp();
-        } else {
-            Utils.notify('Login ou senha incorretos.', 'danger');
+    handleResetPassword() {
+        const userVal = document.getElementById('login-user').value.trim();
+        if (!userVal) {
+            return Utils.notify('Digite seu e-mail no campo acima primeiro.', 'warning');
         }
+
+        firebase.auth().sendPasswordResetEmail(userVal)
+            .then(() => {
+                Utils.notify('E-mail de redefinição enviado! Verifique sua caixa de entrada.', 'success');
+            })
+            .catch((error) => {
+                console.error(error);
+                Utils.notify('Erro ao enviar e-mail. Verifique se digitou corretamente.', 'danger');
+            });
     },
 
     showApp() {
@@ -201,8 +244,9 @@ const App = {
         if (btnSair) {
             btnSair.onclick = (e) => {
                 e.preventDefault();
-                this.currentUser = null;
-                App.init(); // Recarrega tela de login
+                firebase.auth().signOut().then(() => {
+                    this.currentUser = null;
+                });
             };
         }
         if (this.dateDisplay) {
