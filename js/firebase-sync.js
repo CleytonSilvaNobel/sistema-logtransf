@@ -85,10 +85,10 @@ const FirebaseDB = {
                 const cloudViagens = currentCloudData.viagens ? currentCloudData.viagens.length : 0;
                 const localViagens = latestLocalData.viagens ? latestLocalData.viagens.length : 0;
                 
-                // Se a nuvem tem viagens cadastradas e o local não, é provável que seja um carregamento acidental de esqueleto vazio.
+                // Se a nuvem tem viagens e o local não, recusa a gravação para não zerar
                 if (cloudViagens > 0 && localViagens === 0) {
-                    console.warn('SAFETY LOCK: Tentativa de sobrescrever nuvem com dados vazios bloqueada.');
-                    return; // Aborta a transação para não zerar a base
+                    console.warn('SAFETY LOCK (LogTransf): Tentativa de sobrescrever nuvem com dados vazios bloqueada.');
+                    latestLocalData.viagens = currentCloudData.viagens;
                 }
             }
 

@@ -637,10 +637,17 @@ const GestaoModule = {
                         .catch(error => {
                             secondaryApp.delete();
                             console.error(error);
-                            let msg = 'Erro ao criar conta.';
-                            if(error.code === 'auth/email-already-in-use') msg = 'Este e-mail já existe no Firebase.';
-                            else if(error.code === 'auth/invalid-email') msg = 'Formato de e-mail inválido.';
-                            Utils.notify(msg, 'danger');
+                            if(error.code === 'auth/email-already-in-use') {
+                                const users = Store.get('users') || [];
+                                users.push(data);
+                                Store.set('users', users);
+                                Utils.notify('Usuário já existe no Google. Permissões vinculadas a este sistema com sucesso!', 'success');
+                                GestaoModule.renderView();
+                            } else {
+                                let msg = 'Erro ao criar conta no Firebase.';
+                                if(error.code === 'auth/invalid-email') msg = 'Formato de e-mail inválido.';
+                                Utils.notify(msg, 'danger');
+                            }
                         });
                     
                     return true; // Fecha o modal, a operação assíncrona avisa depois
