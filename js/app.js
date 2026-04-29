@@ -106,10 +106,6 @@ const App = {
                             Conectar
                         </button>
                     </form>
-                    
-                    <div class="login-footer">
-                        &copy; ${new Date().getFullYear()} NobelPack &middot; <strong>Versão Beta</strong>
-                    </div>
                 </div>
             </div>
         `;
@@ -298,6 +294,25 @@ const App = {
     renderInitialView() {
         const active = document.querySelector('.nav-item.active');
         if (active) this.switchTab(active);
+    },
+
+    handleResetPassword() {
+        const email = document.getElementById('login-user').value.trim();
+        if (!email) {
+            Utils.notify('Preencha seu e-mail no campo acima primeiro.', 'warning');
+            return;
+        }
+
+        if (confirm(`Deseja enviar um e-mail de recuperação de senha para ${email}?`)) {
+            firebase.auth().sendPasswordResetEmail(email)
+                .then(() => {
+                    Utils.notify('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success');
+                })
+                .catch(error => {
+                    console.error(error);
+                    Utils.notify('Erro ao enviar e-mail. Verifique se o endereço está correto.', 'danger');
+                });
+        }
     },
 
     renderView(tab) {
