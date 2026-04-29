@@ -62,19 +62,22 @@
 
             <div class="user-profile">
                 <div class="user-sidebar-info">
-                    <span id="current-user-name" class="user-sidebar-name">Operador Logístico</span>
-                    <span id="current-user-role" class="user-sidebar-role">Acesso Operacional</span>
+                    <span id="current-user-name" class="user-sidebar-name">Operador</span>
+                    <span id="current-user-role" class="user-sidebar-role">Acesso</span>
                 </div>
                 <div class="user-sidebar-actions">
-                    <button id="btn-theme-toggle" title="Alternar Tema" class="nav-item">
-                        <i data-lucide="moon"></i> <span>Tema Escuro</span>
+                    <button id="btn-theme-toggle" class="btn-sidebar-white">
+                        <i data-lucide="sun"></i> <span>Tema Claro</span>
                     </button>
-                    <button id="btn-change-pass" class="nav-item" onclick="GestaoModule.changeMyPassword()">
+                    <button id="btn-change-pass" class="btn-sidebar-white" onclick="GestaoModule.changeMyPassword()">
                         <i data-lucide="key"></i> <span>Alterar Senha</span>
                     </button>
                     <button id="btn-logout" class="nav-item logout-btn">
-                        <i data-lucide="log-out"></i> <span>Sair</span>
+                        <i data-lucide="log-out"></i> <span>Sair do Sistema</span>
                     </button>
+                </div>
+                <div class="sidebar-footer">
+                    Versão: Beta
                 </div>
             </div>
         </aside>
