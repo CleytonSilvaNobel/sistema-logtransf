@@ -85,7 +85,6 @@ const App = {
             <div class="login-wrapper">
                 <div class="login-card">
                     <div class="logo-area">
-                        <i data-lucide="truck"></i>
                         <h2>LogTransf</h2>
                         <span class="brand-subtitle">NOBELPACK</span>
                     </div>
@@ -304,13 +303,14 @@ const App = {
         }
 
         if (confirm(`Deseja enviar um e-mail de recuperação de senha para ${email}?`)) {
+            Utils.notify('Enviando solicitação...', 'info');
             firebase.auth().sendPasswordResetEmail(email)
                 .then(() => {
                     Utils.notify('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success');
                 })
-                .catch(error => {
-                    console.error(error);
-                    Utils.notify('Erro ao enviar e-mail. Verifique se o endereço está correto.', 'danger');
+                .catch((error) => {
+                    console.error('Erro ao enviar reset:', error);
+                    Utils.notify('Erro: ' + error.message, 'danger');
                 });
         }
     },
