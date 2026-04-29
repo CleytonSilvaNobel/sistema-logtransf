@@ -87,25 +87,25 @@ const App = {
                     <div class="logo-area">
                         <i data-lucide="truck"></i>
                         <h2>LogTransf</h2>
-                        <p class="brand-subtitle" style="color: var(--primary); margin-top: 0.25rem;">NobelPack</p>
+                        <span class="brand-subtitle">NOBELPACK</span>
                     </div>
                     
-                    <div class="login-form">
+                    <form class="login-form" onsubmit="event.preventDefault(); App.handleLogin();">
                         <div class="form-group">
-                            <label>E-MAIL</label>
-                            <input type="email" id="login-user" class="form-control" placeholder="ex: seunome@empresa.com.br" autofocus>
+                            <label>E-MAIL DE ACESSO</label>
+                            <input type="email" id="login-user" class="form-control" placeholder="ex: seunome@empresa.com.br" autofocus required>
                         </div>
                         <div class="form-group">
                             <div style="display: flex; justify-content: space-between;">
                                 <label>SENHA</label>
                                 <a href="#" onclick="App.handleResetPassword(); return false;" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Esqueci a senha</a>
                             </div>
-                            <input type="password" id="login-pass" class="form-control" placeholder="Sua senha">
+                            <input type="password" id="login-pass" class="form-control" placeholder="Digite sua senha" required>
                         </div>
-                        <button id="btn-login-submit" class="btn btn-primary login-btn">
-                            Acessar Sistema
+                        <button id="btn-login-submit" class="login-btn">
+                            Conectar
                         </button>
-                    </div>
+                    </form>
                     
                     <div class="login-footer">
                         &copy; ${new Date().getFullYear()} NobelPack &middot; <strong>Versão Beta</strong>

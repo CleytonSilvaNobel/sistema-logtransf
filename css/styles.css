@@ -244,99 +244,97 @@ body {
 .welcome-card p {
     color: var(--text-muted);
 }
-/* Login Screen Styles */
+/* Login Screen Standardized Pattern (LogCub/LogAgend Style) */
 .login-wrapper {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at top right, #334155, #0f172a) !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
-    padding: 1.5rem;
-}
-
-body.dark-theme .login-wrapper {
-    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    z-index: 10000 !important;
 }
 
 .login-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
+    background: rgba(30, 41, 59, 0.7) !important;
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 3.5rem 2.5rem;
-    border-radius: 2rem;
+    padding: 3rem;
+    border-radius: 1.5rem;
     width: 100%;
-    max-width: 420px;
+    max-width: 450px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: white;
     text-align: center;
     animation: fadeIn 0.6s ease-out;
 }
 
 .login-card .logo-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
     margin-bottom: 2.5rem;
 }
 
 .login-card .logo-area i {
-    width: 64px !important;
-    height: 64px !important;
     color: var(--primary);
-    margin-bottom: 1rem;
+    width: 48px !important;
+    height: 48px !important;
 }
 
-.login-card h2 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+.login-card .logo-area h2 {
     color: white;
+    font-size: 2.5rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.login-card .logo-area .brand-subtitle {
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: none;
+    padding: 0;
+}
+
+.login-form .form-group label {
+    color: #e2e8f0;
+    font-weight: 500;
+    font-size: 0.9rem;
     margin-bottom: 0.5rem;
-}
-
-.login-card .subtitle {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.875rem;
-    margin-bottom: 2.5rem;
-}
-
-.login-form .form-group {
-    text-align: left;
-    margin-bottom: 1.25rem;
-}
-
-.login-form label {
     display: block;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    padding-left: 0.5rem;
 }
 
 .login-form .form-control {
-    background: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
+    width: 100%;
     height: 52px;
     border-radius: 12px;
     padding: 0 1.25rem;
-    font-size: 1rem;
-    transition: all 0.2s;
+    outline: none;
 }
 
 .login-form .form-control:focus {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
 }
 
 .login-btn {
     width: 100%;
+    margin-top: 1.5rem;
     height: 54px;
-    margin-top: 1rem;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 1rem;
+    cursor: pointer;
     box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.3);
 }
 
