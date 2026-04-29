@@ -93,7 +93,7 @@ const App = {
                     <div class="login-form">
                         <div class="form-group">
                             <label>E-MAIL</label>
-                            <input type="email" id="login-user" class="form-control" placeholder="Seu e-mail" autofocus>
+                            <input type="email" id="login-user" class="form-control" placeholder="ex: seunome@empresa.com.br" autofocus>
                         </div>
                         <div class="form-group">
                             <div style="display: flex; justify-content: space-between;">
