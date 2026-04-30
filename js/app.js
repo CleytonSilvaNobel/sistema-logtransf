@@ -348,3 +348,41 @@ const App = {
 };
 
 window.addEventListener('DOMContentLoaded', () => App.init());
+
+// Scheduler Polling (LogTransf)
+setInterval(() => {
+    if (!App.currentUser) return; // Only run if logged in
+
+    const rawBkp = localStorage.getItem('LogTransf_BackupConfig');
+    if (!rawBkp) return;
+    const config = JSON.parse(rawBkp);
+    if (!config.active) return;
+
+    const now = new Date();
+    const currentHour = String(now.getHours()).padStart(2, '0');
+    const currentMin = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMin}`;
+
+    if (currentTime !== config.time) return;
+
+    let shouldBackup = false;
+    if (config.freq === 'daily') shouldBackup = true;
+    else if (config.freq === 'weekly') shouldBackup = now.getDay() === parseInt(config.weekday);
+    else if (config.freq === 'monthly') shouldBackup = now.getDate() === parseInt(config.monthday);
+
+    if (!shouldBackup) return;
+
+    const lastBackup = localStorage.getItem('LogTransf_LastBackupDate');
+    const todayStr = now.toISOString().split('T')[0];
+    if (lastBackup === todayStr) return;
+
+    localStorage.setItem('LogTransf_LastBackupDate', todayStr);
+    console.log('[Autobackup] Triggering scheduled LogTransf backup...');
+    try {
+        if (typeof GestaoModule !== 'undefined' && GestaoModule.exportBackup) {
+            GestaoModule.exportBackup();
+        }
+    } catch (e) {
+        console.error('[Autobackup] Failed to export database:', e);
+    }
+}, 30000);

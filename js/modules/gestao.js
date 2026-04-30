@@ -821,6 +821,52 @@ const GestaoModule = {
                         </div>
                     </div>
 
+                    <!-- Backup Automático -->
+                    <div class="m-card" style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(56, 189, 248, 0.05);">
+                        <h4 style="margin-bottom: 0.5rem;"><i data-lucide="clock"></i> Backup Automático</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Programe exportações automáticas (Requer aba aberta).</p>
+                        <form id="form-backup-config" onsubmit="GestaoModule.saveBackupConfig(event)">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.75rem;">Status</label>
+                                    <select id="bkp-active" class="form-control" style="font-size: 0.85rem;">
+                                        <option value="false" ${!JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').active ? 'selected' : ''}>Desativado</option>
+                                        <option value="true" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').active ? 'selected' : ''}>Ativado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.75rem;">Horário</label>
+                                    <input type="time" id="bkp-time" class="form-control" style="font-size: 0.85rem;" value="${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').time || '18:00'}" required />
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label style="font-size: 0.75rem;">Frequência</label>
+                                <select id="bkp-freq" class="form-control" style="font-size: 0.85rem;" onchange="GestaoModule.toggleBackupFields()">
+                                    <option value="daily" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').freq === 'daily' ? 'selected' : ''}>Diário</option>
+                                    <option value="weekly" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').freq === 'weekly' ? 'selected' : ''}>Semanal</option>
+                                    <option value="monthly" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').freq === 'monthly' ? 'selected' : ''}>Mensal</option>
+                                </select>
+                            </div>
+                            <div id="group-weekday" class="form-group" style="margin-bottom: 1rem; display: ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').freq === 'weekly' ? 'block' : 'none'};">
+                                <label style="font-size: 0.75rem;">Dia da Semana</label>
+                                <select id="bkp-weekday" class="form-control" style="font-size: 0.85rem;">
+                                    <option value="1" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 1 ? 'selected' : ''}>Segunda-feira</option>
+                                    <option value="2" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 2 ? 'selected' : ''}>Terça-feira</option>
+                                    <option value="3" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 3 ? 'selected' : ''}>Quarta-feira</option>
+                                    <option value="4" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 4 ? 'selected' : ''}>Quinta-feira</option>
+                                    <option value="5" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 5 ? 'selected' : ''}>Sexta-feira</option>
+                                    <option value="6" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 6 ? 'selected' : ''}>Sábado</option>
+                                    <option value="0" ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').weekday === 0 ? 'selected' : ''}>Domingo</option>
+                                </select>
+                            </div>
+                            <div id="group-monthday" class="form-group" style="margin-bottom: 1rem; display: ${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').freq === 'monthly' ? 'block' : 'none'};">
+                                <label style="font-size: 0.75rem;">Dia do Mês</label>
+                                <input type="number" id="bkp-monthday" class="form-control" style="font-size: 0.85rem;" min="1" max="31" value="${JSON.parse(localStorage.getItem('LogTransf_BackupConfig') || '{}').monthday || 1}" />
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full" style="font-size: 0.85rem;">Salvar Agendamento</button>
+                        </form>
+                    </div>
+
                     <!-- Limpeza de Dados -->
                     <div class="m-card" style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(248, 113, 113, 0.05);">
                         <h4 style="margin-bottom: 0.5rem; color: var(--danger);"><i data-lucide="trash-2"></i> Limpeza de Base</h4>
@@ -835,17 +881,39 @@ const GestaoModule = {
 
     exportBackup() {
         const db = Store.loadDB();
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `BACKUP_LOGTRANSF_${new Date().toISOString().slice(0, 10)}.json`);
+        downloadAnchorNode.setAttribute("download", `logtransf_backup_${new Date().toISOString().split('T')[0]}.json`);
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
 
         // Update backup timestamp
         Store.update('config', null, { last_backup: new Date().toISOString() });
-        Utils.notify('Backup exportado com sucesso!');
+        Utils.notify('Backup exportado com sucesso!', 'success');
+        this.renderView();
+    },
+
+    toggleBackupFields() {
+        const freq = document.getElementById('bkp-freq')?.value;
+        const gw = document.getElementById('group-weekday');
+        const gm = document.getElementById('group-monthday');
+        if (gw) gw.style.display = freq === 'weekly' ? 'block' : 'none';
+        if (gm) gm.style.display = freq === 'monthly' ? 'block' : 'none';
+    },
+
+    saveBackupConfig(e) {
+        e.preventDefault();
+        const config = {
+            active: document.getElementById('bkp-active').value === 'true',
+            freq: document.getElementById('bkp-freq').value,
+            weekday: parseInt(document.getElementById('bkp-weekday').value),
+            monthday: parseInt(document.getElementById('bkp-monthday').value),
+            time: document.getElementById('bkp-time').value
+        };
+        localStorage.setItem('LogTransf_BackupConfig', JSON.stringify(config));
+        Utils.notify('Configuração de Backup Automático salva!', 'success');
         this.renderView();
     },
 
