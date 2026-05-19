@@ -5,9 +5,9 @@ Este documento orienta o uso do sistema LogTransf para a gestão de transferênc
 ## 1. Acesso ao Sistema
 1. Abra o arquivo `index.html` em seu navegador (recomendado: Google Chrome ou Microsoft Edge).
 2. Na tela de login, insira suas credenciais:
-   - **Administrador**: `admin` / `Senha123`
-   - **Supervisor**: `super` / `Senha123`
-   - **Operador**: `oper` / `Senha123`
+   - **Administrador**: `admin` / `[SUA_SENHA_AQUI]`
+   - **Supervisor**: `super` / `[SUA_SENHA_AQUI]`
+   - **Operador**: `oper` / `[SUA_SENHA_AQUI]`
 
 ## 2. Funcionalidades Principais
 
@@ -30,7 +30,7 @@ Visualização em tempo real da operação:
 
 ## 3. Gestão e Configurações (Nível ADM/Supervisor)
 - **Motoristas/Carretas/Locais**: Cadastro e edição de ativos operacionais.
-- **Usuários**: Criação de novos acessos e redefinição de senhas para o padrão `Senha123`.
+- **Usuários**: Criação de novos acessos e redefinição de senhas para o padrão `[SUA_SENHA_AQUI]`.
 - **Manutenção**: Exportação de Backup (JSON) e limpeza de dados históricos.
 
 ## 4. Exportação de Dados

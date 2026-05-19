@@ -14,7 +14,7 @@ Devido ao uso de `localStorage`, os dados ficam armazenados localmente no navega
 ## 2. Manutenção de Cadastro
 - **Motoristas**: Devem ser mantidos ativos apenas os que possuem escalas regulares.
 - **Carretas**: Alterações de capacidade devem ser discutidas com a gerência antes da atualização.
-- **Senhas**: Em caso de perda, Supervisors podem resetar para o padrão `Senha123`.
+- **Senhas**: Em caso de perda, Supervisors podem resetar para o padrão `[SUA_SENHA_AQUI]`.
 
 ## 3. Limpeza de Histórico
 A opção **Limpar Lançamentos** apaga o histórico de produtividade, permitindo o reinício de ciclos (como novos meses ou quinzendas).

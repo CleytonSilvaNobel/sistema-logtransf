@@ -21,9 +21,9 @@ const Store = {
             { id: 'm2', nome: 'Maria Souza', ativo: true }
         ],
         users: [
-            { id: 'u1', nome: 'Admin System', login: 'admin', senha: 'Senha123', grupo: 'ADM' },
-            { id: 'u2', nome: 'Mateus Supervisor', login: 'super', senha: 'Senha123', grupo: 'Supervisor' },
-            { id: 'u3', nome: 'Ana Operadora', login: 'oper', senha: 'Senha123', grupo: 'Operador' }
+            { id: 'u1', nome: 'Admin System', login: 'admin', senha: '[SUA_SENHA_AQUI]', grupo: 'ADM' },
+            { id: 'u2', nome: 'Mateus Supervisor', login: 'super', senha: '[SUA_SENHA_AQUI]', grupo: 'Supervisor' },
+            { id: 'u3', nome: 'Ana Operadora', login: 'oper', senha: '[SUA_SENHA_AQUI]', grupo: 'Operador' }
         ],
         grupos: [
             { id: 'ADM', nome: 'Administrador', descricao: 'Acesso total ao sistema, inclusive manutenção e gestão de grupos.' },
@@ -51,7 +51,7 @@ const Store = {
             const data = JSON.parse(jsonString);
             // Basic validation
             if (!data.viagens || !data.users) throw new Error('Formato inválido');
-            
+
             // Backup current data before overwriting
             const current = localStorage.getItem(Store._dbKey);
             if (current) {
@@ -59,7 +59,7 @@ const Store = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `PRE_IMPORT_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+                a.download = `PRE_IMPORT_BACKUP_${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
             }
 
@@ -80,7 +80,7 @@ const Store = {
             return Store._initialState;
         }
         const db = JSON.parse(data);
-        
+
         // Migration: Update legacy data for current logic and security
         if (db.users) {
             let changed = false;
@@ -94,7 +94,7 @@ const Store = {
 
             // Ensure default visitante user exists
             if (!db.users.find(u => u.login === 'visitante')) {
-                db.users.push({ id: 'u_visitante', nome: 'Visitante', login: 'visitante', senha: 'Senha123', grupo: 'Visitante' });
+                db.users.push({ id: 'u_visitante', nome: 'Visitante', login: 'visitante', senha: '[SUA_SENHA_AQUI]', grupo: 'Visitante' });
                 changed = true;
             }
 
@@ -107,7 +107,7 @@ const Store = {
                 }
                 // Ensure default passwords match new requirement for dev users
                 if (['admin', 'super', 'oper'].includes(loginLower) && (u.senha === '123' || u.senha === '123456')) {
-                    u.senha = 'Senha123';
+                    u.senha = '[SUA_SENHA_AQUI]';
                     changed = true;
                 }
                 return u;
@@ -180,7 +180,7 @@ const Store = {
     getCustosForDate: (dateString) => {
         const config = Store.get('config') || {};
         const historico = config.custos_historico || [];
-        
+
         // Se não houver histórico, retorna o valor de 'custos_palete' como fallback (legado) ou 0
         if (historico.length === 0) {
             return config.custos_palete || { 'c1': 0, 'c2': 0 };

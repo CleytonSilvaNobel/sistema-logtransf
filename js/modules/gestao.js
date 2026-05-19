@@ -51,7 +51,7 @@ const GestaoModule = {
 
     renderSubNav() {
         const userGroup = String(App.currentUser.grupo || '').toUpperCase();
-        
+
         let tabs = [];
         if (this.activeArea === 'settings') {
             tabs = [
@@ -311,7 +311,7 @@ const GestaoModule = {
         const isAdmin = App.currentUser?.grupo === 'ADM';
 
         // Ordena histórico para exibir o mais recente primeiro
-        const historicoOrdenado = [...historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia));
+        const historicoOrdenado = [...historico].sort((a, b) => b.data_vigencia.localeCompare(a.data_vigencia));
 
         return `
             <div class="card">
@@ -422,7 +422,7 @@ const GestaoModule = {
         };
 
         let isValid = false;
-        
+
         carretas.forEach(c => {
             const val = parseFloat(document.getElementById(`custo-${c.id}`)?.value);
             novoRegistro[c.id] = isNaN(val) ? 0 : val;
@@ -447,7 +447,7 @@ const GestaoModule = {
         }
 
         // Atualiza o legacy 'custos_palete' para o último registro vigente (apenas para fallback, se necessário)
-        const registroMaisRecente = [...config.custos_historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
+        const registroMaisRecente = [...config.custos_historico].sort((a, b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
         if (registroMaisRecente) {
             config.custos_palete = { 'c1': registroMaisRecente.c1 || 0, 'c2': registroMaisRecente.c2 || 0 };
         }
@@ -464,15 +464,15 @@ const GestaoModule = {
         if (!confirm('Tem certeza que deseja excluir este registro de custo? Viagens retroativas podem ser impactadas pelo recálculo.')) {
             return;
         }
-        
+
         const config = Store.get('config');
         if (config.custos_historico) {
             config.custos_historico = config.custos_historico.filter(h => h.id !== id);
-            
+
             // Re-atualiza o legacy 'custos_palete'
-            const registroMaisRecente = [...config.custos_historico].sort((a,b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
+            const registroMaisRecente = [...config.custos_historico].sort((a, b) => b.data_vigencia.localeCompare(a.data_vigencia))[0];
             config.custos_palete = registroMaisRecente ? { 'c1': registroMaisRecente.c1 || 0, 'c2': registroMaisRecente.c2 || 0 } : { 'c1': 0, 'c2': 0 };
-            
+
             Store.set('config', config);
             Utils.notify('Registro de custo excluído com sucesso.', 'success');
             this.renderView();
@@ -499,7 +499,7 @@ const GestaoModule = {
             onSave: () => {
                 const descricao = document.getElementById('c-desc').value.trim();
                 const capacidade = parseInt(document.getElementById('c-cap').value);
-                
+
                 if (!descricao) return Utils.notify('Informe a descrição.', 'danger');
 
                 Store.update('carretas', id, { descricao, capacidade });
@@ -535,16 +535,16 @@ const GestaoModule = {
                         </thead>
                         <tbody>
                             ${users.map(u => {
-                                const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
-                                const currentUserGroup = String(App.currentUser.grupo || '').toUpperCase();
-                                const targetUserGroup = String(u.grupo || '').toUpperCase();
-                                const currentWeight = hierarchy[currentUserGroup] || 1;
-                                const targetWeight = hierarchy[targetUserGroup] || 1;
-                                
-                                // Can only edit if current weight >= target weight AND not a visitor
-                                const canEdit = currentWeight >= targetWeight && !isVisitor;
+            const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
+            const currentUserGroup = String(App.currentUser.grupo || '').toUpperCase();
+            const targetUserGroup = String(u.grupo || '').toUpperCase();
+            const currentWeight = hierarchy[currentUserGroup] || 1;
+            const targetWeight = hierarchy[targetUserGroup] || 1;
 
-                                return `
+            // Can only edit if current weight >= target weight AND not a visitor
+            const canEdit = currentWeight >= targetWeight && !isVisitor;
+
+            return `
                                     <tr>
                                         <td><strong>${u.nome}</strong></td>
                                         <td>${u.login}</td>
@@ -558,7 +558,7 @@ const GestaoModule = {
                                         </td>
                                     </tr>
                                 `;
-                            }).join('')}
+        }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -571,7 +571,7 @@ const GestaoModule = {
             return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
         }
         const item = id ? Store.getById('users', id) : null;
-        
+
         const hierarchy = { 'ADM': 3, 'SUPERVISOR': 2, 'OPERADOR': 1 };
         const myGroup = String(App.currentUser.grupo || '').toUpperCase();
         const myWeight = hierarchy[myGroup] || 1;
@@ -604,7 +604,7 @@ const GestaoModule = {
                     ${!id ? `
                     <div class="form-group">
                         <label>Senha Inicial</label>
-                        <input type="password" id="u-pass" class="form-control" value="Senha123">
+                        <input type="password" id="u-pass" class="form-control" value="[SUA_SENHA_AQUI]">
                     </div>
                     ` : ''}
                 </div>
@@ -613,7 +613,7 @@ const GestaoModule = {
                 const nome = document.getElementById('u-nome').value.trim();
                 const login = document.getElementById('u-login').value.trim().toLowerCase();
                 const grupo = document.getElementById('u-grupo').value;
-                
+
                 if (!nome || !login) return Utils.notify('Preencha os campos obrigatórios.', 'danger');
 
                 const data = { nome, login, grupo };
@@ -637,7 +637,7 @@ const GestaoModule = {
                         .catch(error => {
                             secondaryApp.delete();
                             console.error(error);
-                            if(error.code === 'auth/email-already-in-use') {
+                            if (error.code === 'auth/email-already-in-use') {
                                 const users = Store.get('users') || [];
                                 users.push(data);
                                 Store.set('users', users);
@@ -645,11 +645,11 @@ const GestaoModule = {
                                 GestaoModule.renderView();
                             } else {
                                 let msg = 'Erro ao criar conta no Firebase.';
-                                if(error.code === 'auth/invalid-email') msg = 'Formato de e-mail inválido.';
+                                if (error.code === 'auth/invalid-email') msg = 'Formato de e-mail inválido.';
                                 Utils.notify(msg, 'danger');
                             }
                         });
-                    
+
                     return true; // Fecha o modal, a operação assíncrona avisa depois
                 } else {
                     Store.update('users', id, data);
@@ -665,7 +665,7 @@ const GestaoModule = {
         if (String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE') {
             return Utils.notify('Acesso negado: Perfil de Visitante não permite alterações.', 'warning');
         }
-        
+
         const user = Store.getById('users', id);
         if (!user) return Utils.notify('Usuário não encontrado', 'error');
 
@@ -784,7 +784,7 @@ const GestaoModule = {
             onSave: () => {
                 const nome = document.getElementById('g-nome').value.trim();
                 const descricao = document.getElementById('g-desc').value.trim();
-                
+
                 if (!nome) return Utils.notify('Informe o nome do grupo.', 'danger');
 
                 Store.update('grupos', id, { nome, descricao });
@@ -966,7 +966,7 @@ const GestaoModule = {
 
                     const viagens = Store.get('viagens');
                     const saldos = Store.get('saldos');
-                    
+
                     const newViagens = viagens.filter(v => new Date(v.criado_em || v.data) >= cutoff);
                     const newSaldos = saldos.filter(s => new Date(s.data) >= cutoff);
 
@@ -976,7 +976,7 @@ const GestaoModule = {
                     Store.set('saldos', newSaldos);
                     Utils.notify(`${count} registros antigos removidos com sucesso!`);
                 }
-                
+
                 this.renderView();
                 return true;
             }
@@ -1051,7 +1051,7 @@ const GestaoModule = {
 
         Store.update('config', null, { nome_app, nome_empresa, icone_app });
         Utils.notify('Configurações de marca atualizadas com sucesso!');
-        
+
         // Refresh branding globally
         App.updateProfileUI();
         this.renderView();
@@ -1112,7 +1112,7 @@ const GestaoModule = {
 
         const config = Store.get('config');
         config.ai_config = { apiKey, model, instructions };
-        
+
         Store.set('config', config);
         Utils.notify('Configurações do Agente salvas com sucesso!', 'success');
         this.renderView();
