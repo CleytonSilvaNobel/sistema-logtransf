@@ -593,7 +593,7 @@ const GestaoModule = {
                     </div>
                     <div class="form-group">
                         <label>E-mail de Acesso (Login)</label>
-                        <input type="email" id="u-login" class="form-control" value="${item ? item.login : ''}" ${id ? 'readonly' : ''} placeholder="usuario@nobelpack.com.br">
+                        <input type="email" id="u-login" class="form-control" value="${item ? item.login : ''}" ${id ? 'readonly' : ''} placeholder="usuario@empresa.com.br">
                     </div>
                     <div class="form-group">
                         <label>Grupo de Acesso</label>

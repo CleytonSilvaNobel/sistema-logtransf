@@ -7,7 +7,7 @@ const App = {
 
     async init() {
         console.log('LogTransf Initialized');
-        
+
         // --- Sincronização Inicial da Nuvem ---
         try {
             if (window.FirebaseDB) {
@@ -28,7 +28,7 @@ const App = {
 
         Store.loadDB();
         this.applySavedTheme();
-        
+
         // Escutar estado de autenticação do Firebase
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
@@ -44,23 +44,10 @@ const App = {
                 // Usuário está logado no Firebase. Vamos cruzar o e-mail dele com a nossa base.
                 const users = Store.get('users');
                 const localUser = users.find(u => u.login && u.login.toLowerCase() === user.email.toLowerCase());
-                
+
                 if (localUser) {
                     App.currentUser = localUser;
                     App.showApp();
-                } else if (user.email.toLowerCase() === 'cleyton.silva@nobelpack.com.br' || user.email.toLowerCase() === 'admin@nobelpack.com.br') {
-                    const newAdm = {
-                        id: Utils.generateId(8),
-                        nome: 'Cleyton Silva (ADM)',
-                        login: user.email.toLowerCase(),
-                        senha: 'Protegida (Firebase)',
-                        grupo: 'ADM'
-                    };
-                    users.push(newAdm);
-                    Store.set('users', users);
-                    App.currentUser = newAdm;
-                    App.showApp();
-                    Utils.notify('Perfil de Administrador vinculado com sucesso!', 'success');
                 } else {
                     // Está logado no Google, mas não existe no nosso DB.
                     firebase.auth().signOut();
@@ -77,7 +64,7 @@ const App = {
     renderLoginView() {
         const loginContainer = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
-        
+
         if (mainApp) mainApp.style.display = 'none';
         if (!loginContainer) return;
 
@@ -122,7 +109,7 @@ const App = {
         const passVal = document.getElementById('login-pass').value;
 
         if (!userVal || !passVal) return Utils.notify('Preencha todos os campos.', 'warning');
-        
+
         const btn = document.getElementById('btn-login-submit');
         const oldText = btn.innerHTML;
         btn.innerHTML = '<i data-lucide="loader" class="spin"></i> Conectando...';
@@ -167,12 +154,12 @@ const App = {
     showApp() {
         const loginContainer = document.getElementById('login-screen');
         const mainApp = document.getElementById('main-app');
-        
+
         if (loginContainer) loginContainer.innerHTML = '';
         if (mainApp) mainApp.style.display = 'flex';
 
         this.cacheDOM();
-        
+
         if (typeof GestaoModule !== 'undefined') {
             GestaoModule.currentTab = 'motoristas';
             GestaoModule.activeArea = 'settings';
@@ -338,7 +325,7 @@ const App = {
                 if (typeof GestaoModule !== 'undefined') GestaoModule.renderManagement();
                 else throw new Error('GestaoModule não encontrado');
             }
-            
+
             lucide.createIcons();
         } catch (err) {
             console.error('Render error for tab ' + tab + ':', err);
