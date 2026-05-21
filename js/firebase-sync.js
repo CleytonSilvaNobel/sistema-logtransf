@@ -1,17 +1,17 @@
-/**
+﻿/**
  * Firebase Sync Controller for LogTransf
  * This script initializes Firebase and provides an async bridge to sync with LocalStorage
  */
 
 const firebaseConfig = {
-    apiKey: "AIzaSyB8esLUJzqnumckLfjf5isY3qAcbw0pZ6s",
-    authDomain: "nobelpack-systems-4d510.firebaseapp.com",
-    databaseURL: "https://nobelpack-systems-4d510-default-rtdb.firebaseio.com",
-    projectId: "nobelpack-systems-4d510",
-    storageBucket: "nobelpack-systems-4d510.firebasestorage.app",
-    messagingSenderId: "661674699484",
-    appId: "1:661674699484:web:fa68c08bc3d9398d90e219",
-    measurementId: "G-EWFDHF9CDE"
+    apiKey: "AIzaSyCNvK23xN1hjRxD1dDaoW-uK2dyeqJzEgk",
+    authDomain: "nobelpack-systems-2.firebaseapp.com",
+    databaseURL: "https://nobelpack-systems-2-default-rtdb.firebaseio.com",
+    projectId: "nobelpack-systems-2",
+    storageBucket: "nobelpack-systems-2.firebasestorage.app",
+    messagingSenderId: "736419755079",
+    appId: "1:736419755079:web:5d3f1292252331fbc7ad62",
+    measurementId: "G-7NB3625L3H"
 };
 
 let dbRef = null;
@@ -32,7 +32,7 @@ const FirebaseDB = {
         }
     },
 
-    // Puxa toda a árvore de dados da nuvem para preencher o LocalStorage (Chamado 1x no login)
+    // Puxa toda a Ã¡rvore de dados da nuvem para preencher o LocalStorage (Chamado 1x no login)
     syncLoad: async () => {
         if (!isFirebaseInitialized) return null;
         const DB_KEY = 'logtransf_db_v1';
@@ -56,7 +56,7 @@ const FirebaseDB = {
     listen: (onUpdateCallback) => {
         if (!isFirebaseInitialized) return;
         
-        // Chave DEVE ser idêntica à usada em Store._dbKey
+        // Chave DEVE ser idÃªntica Ã  usada em Store._dbKey
         const DB_KEY = 'logtransf_db_v1';
         
         dbRef.on('value', (snapshot) => {
@@ -68,7 +68,7 @@ const FirebaseDB = {
                 const cloudStr = JSON.stringify(cloudData);
                 
                 if (localStr !== cloudStr) {
-                    console.log('Firebase: Nova atualização recebida da nuvem.');
+                    console.log('Firebase: Nova atualizaÃ§Ã£o recebida da nuvem.');
                     localStorage.setItem(DB_KEY, cloudStr);
                     if (onUpdateCallback) onUpdateCallback(cloudData);
                 }
@@ -76,33 +76,33 @@ const FirebaseDB = {
         });
     },
 
-    // Empurra a versão do LocalStorage para a Nuvem com Transação Anti-Concorrência
+    // Empurra a versÃ£o do LocalStorage para a Nuvem com TransaÃ§Ã£o Anti-ConcorrÃªncia
     syncSave: (latestLocalData, isManualWipe = false) => {
         if (!isFirebaseInitialized) return;
         
-        console.log('Firebase: Iniciando sincronização com a nuvem...');
+        console.log('Firebase: Iniciando sincronizaÃ§Ã£o com a nuvem...');
         
-        // Transação para evitar concorrência (Race Condition) no exato milissegundo
+        // TransaÃ§Ã£o para evitar concorrÃªncia (Race Condition) no exato milissegundo
         dbRef.transaction((currentCloudData) => {
             // ANTI-WIPE SAFETY: Impede que um dispositivo novo/vazio zere a nuvem
             if (currentCloudData && !isManualWipe) {
                 const cloudViagens = currentCloudData.viagens ? currentCloudData.viagens.length : 0;
                 const localViagens = latestLocalData.viagens ? latestLocalData.viagens.length : 0;
                 
-                // Se a nuvem tem viagens e o local não, recusa a gravação para não zerar
+                // Se a nuvem tem viagens e o local nÃ£o, recusa a gravaÃ§Ã£o para nÃ£o zerar
                 if (cloudViagens > 0 && localViagens === 0) {
                     console.warn('SAFETY LOCK (LogTransf): Tentativa de sobrescrever nuvem com dados vazios bloqueada.');
                     latestLocalData.viagens = currentCloudData.viagens;
                 }
             }
 
-            // A mesclagem por transação nativa do Firebase garante a última e mais íntegra versão
+            // A mesclagem por transaÃ§Ã£o nativa do Firebase garante a Ãºltima e mais Ã­ntegra versÃ£o
             return latestLocalData;
         }, (error, committed, snapshot) => {
             if (error) {
-                console.error('Firebase: Erro na gravação transacional:', error);
+                console.error('Firebase: Erro na gravaÃ§Ã£o transacional:', error);
             } else if (!committed) {
-                console.log('Firebase: Gravação abortada (Trava de Segurança Anti-Wipe acionada).');
+                console.log('Firebase: GravaÃ§Ã£o abortada (Trava de SeguranÃ§a Anti-Wipe acionada).');
             } else {
                 console.log('Firebase: Dados sincronizados com sucesso (logtransf_db_v1).');
             }
