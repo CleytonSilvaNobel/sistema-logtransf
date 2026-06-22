@@ -3,10 +3,12 @@
  */
 
 const ViagensModule = {
+    currentPage: 1,
+
     renderView() {
         const carretas = Store.get('carretas').filter(c => c.ativa);
         const locais = Store.get('locais');
-        const viagens = Store.get('viagens').sort((a,b) => new Date(b.data) - new Date(a.data));
+        const viagens = Store.get('viagens').sort((a, b) => new Date(b.data) - new Date(a.data));
 
         const userGroup = String(App.currentUser.grupo || '').toUpperCase();
         const isVisitor = userGroup === 'VISITANTE';
@@ -51,7 +53,7 @@ const ViagensModule = {
                             <div class="form-group">
                                 <label>Destino (Unidade)</label>
                                 <select id="v-destino" class="form-control" required>
-                                    ${locais.map(l => `<option value="${l.id}" ${l.id==='l2'?'selected':''}>${l.nome}</option>`).join('')}
+                                    ${locais.map(l => `<option value="${l.id}" ${l.id === 'l2' ? 'selected' : ''}>${l.nome}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -101,56 +103,86 @@ const ViagensModule = {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${viagens.slice(0, 50).map(v => {
-                                    const origins = Store.get('locais');
-                                    const drivers = Store.get('motoristas');
-                                    const carreta = Store.getById('carretas', v.id_tipo_carreta);
-                                    const origem = Store.getById('locais', v.id_origem);
-                                    const destino = Store.getById('locais', v.id_destino);
-                                    const motorista = Store.getById('motoristas', v.id_motorista);
-                                    const statusClass = v.ocupacao >= 90 ? 'status-green' : (v.ocupacao >= 70 ? 'status-yellow' : 'status-red');
-                                    
-                                    const diffDias = Math.floor((new Date() - new Date(v.data)) / (1000 * 60 * 60 * 24));
-                                    const role = userGroup;
-                                    const canEdit = !isVisitor && (diffDias <= 7 || ['ADM', 'SUPERVISOR'].includes(role));
-                                    
-                                    const actionsHtml = canEdit ? `
-                                        <button class="icon-btn" onclick="ViagensModule.edit('${v.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
-                                        <button class="icon-btn danger" onclick="ViagensModule.delete('${v.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
-                                    ` : `<span title="${isVisitor ? 'Somente Leitura' : 'Bloqueado: Registro > 7 dias'}" style="padding: 0.5rem; display:inline-block;"><i data-lucide="lock" style="width:16px;height:16px;color:#94a3b8"></i></span>`;
-                                    
-                                    return `
-                                        <tr>
-                                            <td>${Utils.formatDate(v.data)}</td>
-                                            <td>#${v.sequencial}</td>
-                                            <td>${carreta ? carreta.descricao : '-'}</td>
-                                            <td>${motorista ? motorista.nome : 'N/A'}</td>
-                                            <td>${origem ? origem.nome : '-'}</td>
-                                            <td>${destino ? destino.nome : '-'}</td>
-                                            <td><strong>${v.quantidade_paletes}</strong></td>
-                                            <td>
-                                                <div class="occupancy-cell">
-                                                    <div class="occupancy-bar-bg">
-                                                        <div class="occupancy-bar ${statusClass}" style="width: ${v.ocupacao}%"></div>
+                                ${(() => {
+                const itemsPerPage = 20;
+                const totalItems = viagens.length;
+                const start = (this.currentPage - 1) * itemsPerPage;
+                const slicedViagens = viagens.slice(start, start + itemsPerPage);
+
+                return slicedViagens.map(v => {
+                    const carreta = Store.getById('carretas', v.id_tipo_carreta);
+                    const origem = Store.getById('locais', v.id_origem);
+                    const destino = Store.getById('locais', v.id_destino);
+                    const motorista = Store.getById('motoristas', v.id_motorista);
+                    const statusClass = v.ocupacao >= 90 ? 'status-green' : (v.ocupacao >= 70 ? 'status-yellow' : 'status-red');
+
+                    const diffDias = Math.floor((new Date() - new Date(v.data)) / (1000 * 60 * 60 * 24));
+                    const role = userGroup;
+                    const canEdit = !isVisitor && (diffDias <= 7 || ['ADM', 'SUPERVISOR'].includes(role));
+
+                    const actionsHtml = canEdit ? `
+                                            <button class="icon-btn" onclick="ViagensModule.edit('${v.id}')" title="Editar"><i data-lucide="edit-3"></i></button>
+                                            <button class="icon-btn danger" onclick="ViagensModule.delete('${v.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+                                        ` : `<span title="${isVisitor ? 'Somente Leitura' : 'Bloqueado: Registro > 7 dias'}" style="padding: 0.5rem; display:inline-block;"><i data-lucide="lock" style="width:16px;height:16px;color:#94a3b8"></i></span>`;
+
+                    return `
+                                            <tr>
+                                                <td>${Utils.formatDate(v.data)}</td>
+                                                <td>#${v.sequencial}</td>
+                                                <td>${carreta ? carreta.descricao : '-'}</td>
+                                                <td>${motorista ? motorista.nome : 'N/A'}</td>
+                                                <td>${origem ? origem.nome : '-'}</td>
+                                                <td>${destino ? destino.nome : '-'}</td>
+                                                <td><strong>${v.quantidade_paletes}</strong></td>
+                                                <td>
+                                                    <div class="occupancy-cell">
+                                                        <div class="occupancy-bar-bg">
+                                                            <div class="occupancy-bar ${statusClass}" style="width: ${v.ocupacao}%"></div>
+                                                        </div>
+                                                        <span>${Utils.formatNumber(v.ocupacao, 1)}%</span>
                                                     </div>
-                                                    <span>${Utils.formatNumber(v.ocupacao, 1)}%</span>
-                                                </div>
-                                            </td>
-                                            <td>${actionsHtml}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
+                                                </td>
+                                                <td>${actionsHtml}</td>
+                                            </tr>
+                                        `;
+                }).join('');
+            })()}
                                 ${viagens.length === 0 ? '<tr><td colspan="8" style="text-align: center; padding: 3rem;">Nenhuma viagem registrada.</td></tr>' : ''}
                             </tbody>
                         </table>
                     </div>
+                    ${this.renderPagination(viagens.length)}
                 </div>
             </div>
         `;
 
         document.querySelector('.content-body').innerHTML = content;
         lucide.createIcons();
-        this.bindEvents();
+    },
+
+    renderPagination(totalItems) {
+        const itemsPerPage = 20;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (totalPages <= 1) return '';
+
+        return `
+            <div class="pagination-container">
+                <button class="btn-pagination" onclick="ViagensModule.changePage(-1)" ${this.currentPage === 1 ? 'disabled' : ''}>
+                    <i data-lucide="chevron-left"></i> Anterior
+                </button>
+                <div class="pagination-info">
+                    Página <strong>${this.currentPage}</strong> de <strong>${totalPages}</strong>
+                </div>
+                <button class="btn-pagination" onclick="ViagensModule.changePage(1)" ${this.currentPage === totalPages ? 'disabled' : ''}>
+                    Próximo <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        `;
+    },
+
+    changePage(delta) {
+        this.currentPage += delta;
+        this.renderView();
     },
 
     bindEvents() {
@@ -178,7 +210,7 @@ const ViagensModule = {
         if (!carreta) return Utils.notify('Erro ao buscar carreta.', 'danger');
 
         const ocupacao = Utils.calculatePercent(paletes, carreta.capacidade);
-        
+
         const tripsToday = Store.get('viagens').filter(v => v.data === data);
         const nextSeq = tripsToday.length > 0 ? Math.max(...tripsToday.map(t => t.sequencial)) + 1 : 1;
 
@@ -338,31 +370,31 @@ const ViagensModule = {
         reader.onload = (e) => {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
+                const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheet];
                 const json = XLSX.utils.sheet_to_json(worksheet);
 
-                if(json.length === 0) return Utils.notify('A planilha está vazia.', 'warning');
+                if (json.length === 0) return Utils.notify('A planilha está vazia.', 'warning');
 
                 let importedCount = 0;
                 let viagens = Store.get('viagens');
 
                 json.forEach(row => {
                     const rawData = row['Data (AAAA-MM-DD)'];
-                    const carretaId = String(row['ID Carreta (Ex: c1, c2)']||'').trim();
-                    const motoristaId = String(row['ID Motorista (Ex: m1)']||'').trim();
+                    const carretaId = String(row['ID Carreta (Ex: c1, c2)'] || '').trim();
+                    const motoristaId = String(row['ID Motorista (Ex: m1)'] || '').trim();
                     const paletes = parseInt(row['Qtd Paletes']);
-                    const origemId = String(row['ID Origem (Ex: l1, l2)']||'').trim();
-                    const destinoId = String(row['ID Destino']||'').trim();
+                    const origemId = String(row['ID Origem (Ex: l1, l2)'] || '').trim();
+                    const destinoId = String(row['ID Destino'] || '').trim();
 
                     if (!rawData || !carretaId || !paletes || isNaN(paletes)) return;
 
                     const carreta = Store.getById('carretas', carretaId);
                     if (!carreta) return; // ignora linha com carreta inválida
-                    
-                    const dataFormatada = typeof rawData === 'number' 
-                        ? new Date(Math.round((rawData - 25569) * 86400 * 1000)).toISOString().split('T')[0] 
+
+                    const dataFormatada = typeof rawData === 'number'
+                        ? new Date(Math.round((rawData - 25569) * 86400 * 1000)).toISOString().split('T')[0]
                         : String(rawData).trim();
 
                     const tripsToday = viagens.filter(v => v.data === dataFormatada);
@@ -383,16 +415,16 @@ const ViagensModule = {
                         ocupacao: ocupacao,
                         mes_referencia: Utils.getMonthRef(dataFormatada)
                     };
-                    
+
                     viagens.push(newViagem);
                     importedCount++;
                 });
 
                 localStorage.setItem('logtransf_viagens', JSON.stringify(viagens));
                 Store.loadDB();
-                
+
                 if (window.FirebaseDB) FirebaseDB.syncSave(Store.getAll());
-                
+
                 Utils.notify(`${importedCount} viagens importadas com sucesso!`, 'success');
                 this.renderView();
 

@@ -3,9 +3,11 @@
  */
 
 const SaldoModule = {
+    currentPage: 1,
+
     renderView() {
-        const saldos = Store.get('saldos').sort((a,b) => new Date(b.data) - new Date(a.data));
-        
+        const saldos = Store.get('saldos').sort((a, b) => new Date(b.data) - new Date(a.data));
+
         const isVisitor = String(App.currentUser.grupo || '').toUpperCase() === 'VISITANTE';
 
         const content = `
@@ -67,36 +69,68 @@ const SaldoModule = {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${saldos.map(s => {
-                                    const tripsToday = Store.get('viagens').filter(v => v.data === s.data);
-                                    const sentToday = tripsToday.reduce((acc, v) => acc + v.quantidade_paletes, 0);
-                                    
-                                    return `
-                                        <tr>
-                                            <td><strong>${Utils.formatDate(s.data)}</strong></td>
-                                            <td>${Utils.formatNumber(s.saldo_inicio)} plts</td>
-                                            <td>${tripsToday.length} viagens</td>
-                                            <td>${Utils.formatNumber(sentToday)} plts</td>
-                                            <td><small>${s.observacao || '-'}</small></td>
-                                            <td>
-                                                ${!isVisitor ? `
-                                                    <button class="icon-btn danger" onclick="SaldoModule.delete('${s.data}')"><i data-lucide="trash-2"></i></button>
-                                                ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
+                                ${(() => {
+                const itemsPerPage = 20;
+                const totalItems = saldos.length;
+                const start = (this.currentPage - 1) * itemsPerPage;
+                const slicedSaldos = saldos.slice(start, start + itemsPerPage);
+
+                return slicedSaldos.map(s => {
+                    const tripsToday = Store.get('viagens').filter(v => v.data === s.data);
+                    const sentToday = tripsToday.reduce((acc, v) => acc + v.quantidade_paletes, 0);
+
+                    return `
+                                            <tr>
+                                                <td><strong>${Utils.formatDate(s.data)}</strong></td>
+                                                <td>${Utils.formatNumber(s.saldo_inicio)} plts</td>
+                                                <td>${tripsToday.length} viagens</td>
+                                                <td>${Utils.formatNumber(sentToday)} plts</td>
+                                                <td><small>${s.observacao || '-'}</small></td>
+                                                <td>
+                                                    ${!isVisitor ? `
+                                                        <button class="icon-btn danger" onclick="SaldoModule.delete('${s.data}')"><i data-lucide="trash-2"></i></button>
+                                                    ` : '<i data-lucide="lock" style="width:16px;color:#94a3b8"></i>'}
+                                                </td>
+                                            </tr>
+                                        `;
+                }).join('');
+            })()}
                                 ${saldos.length === 0 ? '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Nenhum saldo registrado.</td></tr>' : ''}
                             </tbody>
                         </table>
                     </div>
+                    ${this.renderPagination(saldos.length)}
                 </div>
             </div>
         `;
 
         document.querySelector('.content-body').innerHTML = content;
         lucide.createIcons();
-        this.bindEvents();
+    },
+
+    renderPagination(totalItems) {
+        const itemsPerPage = 20;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (totalPages <= 1) return '';
+
+        return `
+            <div class="pagination-container">
+                <button class="btn-pagination" onclick="SaldoModule.changePage(-1)" ${this.currentPage === 1 ? 'disabled' : ''}>
+                    <i data-lucide="chevron-left"></i> Anterior
+                </button>
+                <div class="pagination-info">
+                    Página <strong>${this.currentPage}</strong> de <strong>${totalPages}</strong>
+                </div>
+                <button class="btn-pagination" onclick="SaldoModule.changePage(1)" ${this.currentPage === totalPages ? 'disabled' : ''}>
+                    Próximo <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        `;
+    },
+
+    changePage(delta) {
+        this.currentPage += delta;
+        this.renderView();
     },
 
     bindEvents() {
