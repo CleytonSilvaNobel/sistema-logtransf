@@ -158,6 +158,7 @@ const ViagensModule = {
 
         document.querySelector('.content-body').innerHTML = content;
         lucide.createIcons();
+        this.bindEvents(); // CRITICAL: Re-attach events after render
     },
 
     renderPagination(totalItems) {
