@@ -23,8 +23,8 @@ const FirebaseDB = {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
             }
-            // Use Realtime Database connection (Isolado para Homologação)
-            dbRef = firebase.database().ref('logtransf_db_homolog');
+            // Use Realtime Database connection
+            dbRef = firebase.database().ref('logtransf_db_v1');
             isFirebaseInitialized = true;
             console.log('Firebase Cloud Database Conectado (logtransf_db_v1).');
         } catch (error) {
