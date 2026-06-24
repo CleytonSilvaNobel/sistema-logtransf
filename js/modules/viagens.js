@@ -230,6 +230,7 @@ const ViagensModule = {
 
         Store.insert('viagens', newViagem);
         Utils.notify('Transferência registrada com sucesso!', 'success');
+        this.currentPage = 1; // Reseta para a primeira página para ver o novo registro
         this.renderView();
     },
 
@@ -420,12 +421,11 @@ const ViagensModule = {
                     importedCount++;
                 });
 
-                localStorage.setItem('logtransf_viagens', JSON.stringify(viagens));
-                Store.loadDB();
-
-                if (window.FirebaseDB) FirebaseDB.syncSave(Store.getAll());
+                // PERSISTÊNCIA CORRETA: Store.set garante a chave certa e sincronização Cloud
+                Store.set('viagens', viagens);
 
                 Utils.notify(`${importedCount} viagens importadas com sucesso!`, 'success');
+                this.currentPage = 1; // Volta para a primeira página para mostrar os dados novos
                 this.renderView();
 
             } catch (err) {

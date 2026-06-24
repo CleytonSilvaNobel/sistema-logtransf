@@ -3,7 +3,7 @@
  */
 
 const Store = {
-    _dbKey: 'logtransf_db_v1',
+    _dbKey: 'logtransf_db_homolog',
 
     _initialState: {
         carretas: [
